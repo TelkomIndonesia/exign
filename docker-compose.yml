@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  frontend:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      keygen:
+        condition: service_completed_successfully
+    environment:
+      MPROXY_FRONT_DOUBLEDASH_PARENT_DOMAINS:
+      MPROXY_FRONT_PROXY_SECURE:
+      MPROXY_FRONT_CLIENT_MAX_BUFFER_SIZE:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 1.1.1.1
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./keys:/usr/src/app/keys
+
+  keygen:
+    image: node:18
+    restart: on-failure
+    volumes:
+      - ${PWD:-.}:${PWD:-/usr/src/app}
+    working_dir: ${PWD:-/usr/src/app}
+    entrypoint: []
+    command: ./keygen.sh
