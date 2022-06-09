@@ -35,10 +35,7 @@ function createCert(domain, opts) {
     ];
     cert.setSubject(attrs);
     cert.setExtensions([
-        {
-            name: 'basicConstraints',
-            cA: false
-        },
+        { name: 'basicConstraints', cA: false },
         {
             name: 'keyUsage',
             keyCertSign: true, digitalSignature: true, nonRepudiation: true,
@@ -56,13 +53,9 @@ function createCert(domain, opts) {
         },
         {
             name: 'subjectAltName',
-            altNames: [
-                { type: 2, value: domain }
-            ]
+            altNames: [{ type: 2, value: domain }]
         },
-        {
-            name: 'subjectKeyIdentifier'
-        }
+        { name: 'subjectKeyIdentifier' }
     ]);
     cert.setIssuer(opts.caCert.subject.attributes);
     cert.sign(opts.caKey, node_forge_1.md.sha256.create());

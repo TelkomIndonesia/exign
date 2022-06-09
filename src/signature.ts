@@ -1,17 +1,17 @@
 import * as crypto from 'node:crypto';
+import * as httpSignature from 'http-signature';
+import * as sshpk from 'sshpk';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { ClientRequest, IncomingMessage } from 'node:http';
 import { pipeline } from 'stream';
-import * as httpSignature from 'http-signature';
-import * as sshpk from 'sshpk'
-import * as fs from 'fs'
-import * as path from 'path'
-import * as os from 'os'
 import { promisify } from 'node:util';
 const pipelineProm = promisify(pipeline)
 import { v4 as uuidv4 } from 'uuid'
 import { Readable } from 'node:stream';
 
-function getTmpFilename(): { filepath: string, cleanup: () => Promise<void> } {
+function tmpFilename(): { filepath: string, cleanup: () => Promise<void> } {
     const filepath = path.join(os.tmpdir(), "etchpass-" + uuidv4())
     const cleanup = async function () {
         try {
@@ -39,7 +39,7 @@ export async function digest(req: IncomingMessage, opts?: digestOptions): Promis
 
     let body: string | Readable
     if ((req.headers["content-length"] || 0) > (opts?.maxBufferSize || 8192)) {
-        const { filepath, cleanup } = getTmpFilename()
+        const { filepath, cleanup } = tmpFilename()
         await pipelineProm(req, fs.createWriteStream(filepath))
         body = fs.createReadStream(filepath).on("close", () => cleanup())
 

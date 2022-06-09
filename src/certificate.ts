@@ -42,10 +42,7 @@ export function createCert(domain: string, opts: createCertOptions): certpair {
     ];
     cert.setSubject(attrs);
     cert.setExtensions([
-        {
-            name: 'basicConstraints',
-            cA: false
-        },
+        { name: 'basicConstraints', cA: false },
         {
             name: 'keyUsage',
             keyCertSign: true, digitalSignature: true, nonRepudiation: true,
@@ -63,13 +60,9 @@ export function createCert(domain: string, opts: createCertOptions): certpair {
         },
         {
             name: 'subjectAltName',
-            altNames: [
-                { type: 2, value: domain }
-            ]
+            altNames: [{ type: 2, value: domain }]
         },
-        {
-            name: 'subjectKeyIdentifier'
-        }
+        { name: 'subjectKeyIdentifier' }
     ]);
     cert.setIssuer(opts.caCert.subject.attributes);
     cert.sign(opts.caKey, md.sha256.create());

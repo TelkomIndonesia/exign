@@ -22,6 +22,7 @@
         "outDir": "./dist/",
         "types": [
             "node",
+            "mocha"
         ],
         "lib": [
             "ES6",
@@ -32,7 +33,7 @@
         "types/**/*.d.ts"
     ],
     "exclude": [
+        "src/**/*.spec.ts",
         "node_modules",
-        "**/*.test.ts"
     ]
 }

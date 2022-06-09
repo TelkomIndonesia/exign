@@ -3,16 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sign = exports.digest = void 0;
 const tslib_1 = require("tslib");
 const crypto = tslib_1.__importStar(require("node:crypto"));
-const stream_1 = require("stream");
 const httpSignature = tslib_1.__importStar(require("http-signature"));
 const sshpk = tslib_1.__importStar(require("sshpk"));
 const fs = tslib_1.__importStar(require("fs"));
 const path = tslib_1.__importStar(require("path"));
 const os = tslib_1.__importStar(require("os"));
+const stream_1 = require("stream");
 const node_util_1 = require("node:util");
 const pipelineProm = (0, node_util_1.promisify)(stream_1.pipeline);
 const uuid_1 = require("uuid");
-function getTmpFilename() {
+function tmpFilename() {
     const filepath = path.join(os.tmpdir(), "etchpass-" + (0, uuid_1.v4)());
     const cleanup = function () {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
@@ -41,7 +41,7 @@ function digest(req, opts) {
         });
         let body;
         if ((req.headers["content-length"] || 0) > ((opts === null || opts === void 0 ? void 0 : opts.maxBufferSize) || 8192)) {
-            const { filepath, cleanup } = getTmpFilename();
+            const { filepath, cleanup } = tmpFilename();
             yield pipelineProm(req, fs.createWriteStream(filepath));
             body = fs.createReadStream(filepath).on("close", () => cleanup());
         }

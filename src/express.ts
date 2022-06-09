@@ -2,9 +2,9 @@ import express from 'express';
 import { createProxyServer } from './proxy';
 import { mapDoubleDashDomain } from './double-dash-domain';
 import { Readable } from 'stream';
-import * as signature from './signature';
-import * as fs from 'fs';
+import { sign, digest } from './signature';
 import config from "./config"
+import { readFileSync } from 'fs';
 
 const app = express();
 app.use(function logger(req, res, next) {
@@ -24,15 +24,15 @@ app.use(function logger(req, res, next) {
     next()
 })
 
-const key = fs.readFileSync(config.signature.keyfile, 'utf8');
-const pubKey = fs.readFileSync(config.signature.pubkeyfile, 'utf8');
+const key = readFileSync(config.signature.keyfile, 'utf8');
+const pubKey = readFileSync(config.signature.pubkeyfile, 'utf8');
 const proxy = createProxyServer({ ws: true }).
     on("proxyReq", function onProxyReq(proxyReq) {
-        signature.sign(proxyReq, { key: key, pubKey: pubKey })
+        sign(proxyReq, { key: key, pubKey: pubKey })
     })
 app.all("/*", async function proxyHandler(req, res) {
-    const { digest, body } = await signature.digest(req, { maxBufferSize: config.clientMaxBufferSize })
-    req.headers["digest"] = digest
+    const { digest: digestValue, body } = await digest(req, { maxBufferSize: config.clientMaxBufferSize })
+    req.headers["digest"] = digestValue
 
     const targetHost = await mapDoubleDashDomain(req.hostname, config.doubleDashParentDomains) || req.hostname
     proxy.web(req, res, {
