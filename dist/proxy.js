@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createProxyServer = void 0;
-const http_proxy_1 = require("http-proxy");
+var http_proxy_1 = require("http-proxy");
 // https://github.com/http-party/node-http-proxy/issues/1586#issue-1246337115
 function withCleanup(proxy) {
-    return proxy.on('proxyRes', (proxyRes, req, res) => {
-        const cleanup = (err) => {
+    return proxy.on('proxyRes', function (proxyRes, req, res) {
+        var cleanup = function (err) {
             // cleanup event listeners to allow clean garbage collection
             proxyRes.removeListener('error', cleanup);
             proxyRes.removeListener('close', cleanup);
