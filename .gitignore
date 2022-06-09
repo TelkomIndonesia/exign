@@ -1,3 +1,5 @@
-dist
-keys
+.vscode
 node_modules
+keys
+.env
+docker-compose.override.yml

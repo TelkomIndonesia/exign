@@ -4,8 +4,9 @@ import https from "https"
 import tls from "tls"
 import { createCert, loadPairSync } from "./certificate"
 import { pki } from "node-forge"
+import config from "./config"
 
-const { key: caKey, cert: caCert } = loadPairSync("./keys/transport/ca-key.pem", "./keys/transport/ca.crt")
+const { key: caKey, cert: caCert } = loadPairSync(config.transport.caKeyfile, config.transport.caCertfile)
 const { key: localhostKey, cert: localhostCert } = createCert("localhost", { caKey, caCert })
 
 http.createServer(app).
