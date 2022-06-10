@@ -77,12 +77,15 @@ interface signOptions {
     pubKey?: string
 }
 export function sign(req: ClientRequest, opts: signOptions) {
+    const addParam = ["(request-target)"]
+    if (!req.hasHeader("date")) addParam.push("date") // the header will be added by the library
+
     httpSignature.sign(req, {
         key: opts.key,
         keyId: opts.keyId || (opts.pubKey ? keyFingerprint(opts.pubKey) : ""),
         authorizationHeaderName: signatureHeader,
         headers: Object.keys(req.getHeaders()).
-            concat("date", "(request-target)").
+            concat(addParam).
             filter(v => !hopByHopHeaders.get(v.toLowerCase())),
     });
 }
