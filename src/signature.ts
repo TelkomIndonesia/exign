@@ -2,26 +2,12 @@ import * as crypto from 'node:crypto';
 import * as httpSignature from 'http-signature';
 import * as sshpk from 'sshpk';
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import { ClientRequest, IncomingMessage } from 'node:http';
-import { pipeline } from 'stream';
-import { promisify } from 'node:util';
-const pipelineProm = promisify(pipeline)
-import { v4 as uuidv4 } from 'uuid'
 import { Readable } from 'node:stream';
-
-function tmpFilename(): { filepath: string, cleanup: () => Promise<void> } {
-    const filepath = path.join(os.tmpdir(), "etchpass-" + uuidv4())
-    const cleanup = async function () {
-        try {
-            await fs.promises.rm(filepath)
-        } catch (err) {
-            console.log({ error: err, path: filepath, message: "error_deleting_tmp_file" },)
-        }
-    }
-    return { filepath, cleanup }
-}
+import { pipeline } from 'node:stream';
+import { promisify } from 'node:util';
+import { tmpFilename } from './util';
+const pipelineProm = promisify(pipeline)
 
 interface digestOptions {
     maxBufferSize?: number
@@ -63,6 +49,8 @@ const hopByHopHeaders = new Map<string, boolean>([
     ["proxy-authorization", true],
 ])
 const signatureHeader = "signature"
+
+export const noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([signatureHeader])
 
 function keyFingerprint(key: string): string {
     try {

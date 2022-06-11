@@ -9,6 +9,7 @@ export declare function digest(req: IncomingMessage, opts?: digestOptions): Prom
     digest: string;
     body: string | Readable;
 }>;
+export declare const noVerifyHeaders: string[];
 interface signOptions {
     key: string;
     keyId?: string;
