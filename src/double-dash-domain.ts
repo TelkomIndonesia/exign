@@ -31,8 +31,10 @@ export async function mapDoubleDashDomainDNS(hostname: string): Promise<string> 
     return domain
 }
 
+const doubledash = "--"
+
 export async function mapDoubleDashDomain(hostname: string, doubledashParentDomains: string[]): Promise<string | undefined> {
-    if (hostname.indexOf("--") < 0) return
+    if (hostname.indexOf(doubledash) < 0) return
 
     let parentdomain = ""
     for (const v of doubledashParentDomains) {

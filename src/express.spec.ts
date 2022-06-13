@@ -7,6 +7,9 @@ import { ClientRequest } from 'http'
 import { noVerifyHeaders } from './signature'
 import { tmpFilename } from './util'
 import { writeFileSync } from 'fs'
+import newApp from './express'
+import { Application } from 'express'
+import { v4 as uuid4 } from 'uuid'
 
 
 const testKey = {
@@ -22,7 +25,8 @@ SoZDgR/T6MXzVmj3qLRKw73J86OItmezGw==
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmdjI3/GyAqdKE73qCthlGDwfwU6P
 Ngn8i4FhzILRVo/I6fZC+sb5SoZDgR/T6MXzVmj3qLRKw73J86OItmezGw==
 -----END PUBLIC KEY-----
-`
+`,
+    id: `SHA256:JB72jpoWUunMRa9m0SVoa8Ms1Z2wL/5AZ4cVLw+bgd4`
 }
 
 function writeTmpFile(content: string) {
@@ -46,46 +50,49 @@ function interceptReq(url: URL, method: string): Promise<ClientRequest & { heade
     })
 }
 
-describe('Signature', function () {
+function newTestApp(): { app: Application, cleanup: () => void } {
+    const { filepath: key, cleanup: keyCleanup } = writeTmpFile(testKey.private)
+    const { filepath: pub, cleanup: pubCleanup } = writeTmpFile(testKey.private)
+
+    const app = newApp({
+        doubleDashParentDomains: ["domain.test"],
+        clientMaxBufferSize: config.clientMaxBufferSize,
+        signature: {
+            keyfile: key,
+            pubkeyfile: pub,
+        }
+    })
+    const cleanup = function tempFilesCleanup() {
+        keyCleanup()
+        pubCleanup()
+    }
+    return { app, cleanup }
+}
+
+describe('Express App', function () {
     const deferrers: { (): void }[] = []
+    let app: Application
     before(function () {
-        const ddParentDomains = config.doubleDashParentDomains
-        config.doubleDashParentDomains = ["domain.test"]
-        deferrers.push(() => config.doubleDashParentDomains = ddParentDomains)
-
-        const { filepath: key, cleanup: keyCleanup } = writeTmpFile(testKey.private)
-        const oldKey = config.signature.keyfile
-        config.signature.keyfile = key
-        deferrers.push(() => {
-            config.signature.keyfile = oldKey
-            keyCleanup()
-        })
-
-        const { filepath: pub, cleanup: pubCleanup } = writeTmpFile(testKey.private)
-        const oldPub = config.signature.keyfile
-        config.signature.pubkeyfile = pub
-        deferrers.push(() => {
-            config.signature.keyfile = oldPub
-            pubCleanup()
-        })
-        console.log(config)
+        let cleanup: () => void
+        ({ app: app, cleanup } = newTestApp())
+        deferrers.push(cleanup)
     })
     after(function () {
         for (const fn of deferrers) fn()
-    });
+    })
 
-    it('should sign the ClientRequest', async function () {
-        const app = (await import("./express")).default
+    it('should sign and proxy the ClientRequest', async function () {
         const url = new URL("http://name.domain.test"), method = "get"
         const promReq = interceptReq(url, method)
         await request(app).
             get(url.pathname).
-            set("host", "random--" + url.hostname)
+            set("host", uuid4() + "--" + url.hostname)
         const req = await promReq
         const parsed = httpSignature.parseRequest(req, {
             headers: Object.keys(req.headers).
                 filter(v => !noVerifyHeaders.includes(v))
         })
+        expect(parsed.keyId).to.be.equal(testKey.id)
         expect(httpSignature.verifySignature(parsed, testKey.public)).to.be.true
     })
 })

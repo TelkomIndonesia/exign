@@ -2,18 +2,18 @@
 /// <reference types="node" />
 import { ClientRequest, IncomingMessage } from 'node:http';
 import { Readable } from 'node:stream';
-interface digestOptions {
+interface DigestOptions {
     maxBufferSize?: number;
 }
-export declare function digest(req: IncomingMessage, opts?: digestOptions): Promise<{
+export declare function digest(req: IncomingMessage, opts?: DigestOptions): Promise<{
     digest: string;
     body: string | Readable;
 }>;
 export declare const noVerifyHeaders: string[];
-interface signOptions {
+interface SignOptions {
     key: string;
     keyId?: string;
     pubKey?: string;
 }
-export declare function sign(req: ClientRequest, opts: signOptions): void;
+export declare function sign(req: ClientRequest, opts: SignOptions): void;
 export {};

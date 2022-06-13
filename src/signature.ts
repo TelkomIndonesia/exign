@@ -9,10 +9,10 @@ import { promisify } from 'node:util';
 import { tmpFilename } from './util';
 const pipelineProm = promisify(pipeline)
 
-interface digestOptions {
+interface DigestOptions {
     maxBufferSize?: number
 }
-export async function digest(req: IncomingMessage, opts?: digestOptions): Promise<{ digest: string, body: string | Readable }> {
+export async function digest(req: IncomingMessage, opts?: DigestOptions): Promise<{ digest: string, body: string | Readable }> {
     const digest = new Promise<string>((resolve, reject) => {
         const hash = crypto.createHash("sha256")
         req.on("data", chunk => hash.update(chunk)).
@@ -49,7 +49,6 @@ const hopByHopHeaders = new Map<string, boolean>([
     ["proxy-authorization", true],
 ])
 const signatureHeader = "signature"
-
 export const noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([signatureHeader])
 
 function keyFingerprint(key: string): string {
@@ -59,12 +58,12 @@ function keyFingerprint(key: string): string {
         return ""
     }
 }
-interface signOptions {
+interface SignOptions {
     key: string
     keyId?: string
     pubKey?: string
 }
-export function sign(req: ClientRequest, opts: signOptions) {
+export function sign(req: ClientRequest, opts: SignOptions) {
     const addParam = ["(request-target)"]
     if (!req.hasHeader("date")) addParam.push("date") // the header will be added by the library
 

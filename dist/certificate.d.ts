@@ -1,12 +1,12 @@
 import { pki } from 'node-forge';
-interface certpair {
+interface CertPair {
     key: pki.PrivateKey;
     cert: pki.Certificate;
 }
-export declare function loadPairSync(keyfile: string, certfile: string): certpair;
+export declare function loadCertPairSync(keyfile: string, certfile: string): CertPair;
 interface createCertOptions {
     caKey: pki.PrivateKey;
     caCert: pki.Certificate;
 }
-export declare function createCert(domain: string, opts: createCertOptions): certpair;
+export declare function createCertPair(domain: string, opts: createCertOptions): CertPair;
 export {};

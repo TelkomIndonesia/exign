@@ -1,13 +1,11 @@
-import express from 'express';
-import { createProxyServer } from './proxy';
-import { mapDoubleDashDomain } from './double-dash-domain';
 import { Readable } from 'stream';
-import { sign, digest } from './signature';
-import config from "./config"
 import { readFileSync } from 'fs';
+import express, { Application, NextFunction, Request, RequestHandler, Response } from 'express';
+import { sign, digest } from './signature';
+import { mapDoubleDashDomain } from './double-dash-domain';
+import { createProxyServer } from './proxy';
 
-const app = express();
-app.use(function logger(req, res, next) {
+function loggerMiddleware(req: Request, res: Response, next: NextFunction) {
     res.on("close", function log() {
         console.log({
             request: {
@@ -22,27 +20,46 @@ app.use(function logger(req, res, next) {
         })
     })
     next()
-})
+}
 
-const key = readFileSync(config.signature.keyfile, 'utf8');
-const pubKey = readFileSync(config.signature.pubkeyfile, 'utf8');
-const proxy = createProxyServer({ ws: true }).
-    on("proxyReq", function onProxyReq(proxyReq) {
-        sign(proxyReq, { key: key, pubKey: pubKey })
-    })
-app.all("/*", async function proxyHandler(req, res) {
-    const { digest: digestValue, body } = await digest(req, { maxBufferSize: config.clientMaxBufferSize })
-    req.headers["digest"] = digestValue
+function newSignatureHandler(opts: AppOptions): RequestHandler {
+    const key = readFileSync(opts.signature.keyfile, 'utf8');
+    const pubKey = readFileSync(opts.signature.pubkeyfile, 'utf8');
+    const proxy = createProxyServer({ ws: true }).
+        on("proxyReq", function onProxyReq(proxyReq) {
+            sign(proxyReq, { key: key, pubKey: pubKey })
+        })
+    const fn = async function signatureHandler(req: Request, res: Response) {
+        const { digest: digestValue, body } = await digest(req, { maxBufferSize: opts.clientMaxBufferSize })
+        req.headers["digest"] = digestValue
 
-    const targetHost = await mapDoubleDashDomain(req.hostname, config.doubleDashParentDomains) || req.hostname
-    proxy.web(req, res, {
-        changeOrigin: false,
-        target: `${req.protocol}://${targetHost}:${req.protocol === "http" ? "80" : "443"}`,
-        secure: (process.env.MPROXY_FRONT_PROXY_SECURE || "true") === "true",
-        buffer: body instanceof Readable ? body
-            : body ? Readable.from(body)
-                : undefined
-    })
-})
+        const targetHost = await mapDoubleDashDomain(req.hostname, opts.doubleDashParentDomains) || req.hostname
+        proxy.web(req, res, {
+            changeOrigin: false,
+            target: `${req.protocol}://${targetHost}:${req.protocol === "http" ? "80" : "443"}`,
+            secure: (process.env.MPROXY_FRONT_PROXY_SECURE || "true") === "true",
+            buffer: body instanceof Readable ? body
+                : body ? Readable.from(body)
+                    : undefined
+        })
+    }
+    return fn
+}
 
-export default app
+interface AppOptions {
+    signature: {
+        keyfile: string,
+        pubkeyfile: string
+    },
+    clientMaxBufferSize: number
+    doubleDashParentDomains: string[]
+}
+
+function newApp(opts: AppOptions): Application {
+    const app = express();
+    app.use(loggerMiddleware)
+    app.all("/*", newSignatureHandler(opts))
+    return app
+}
+
+export default newApp

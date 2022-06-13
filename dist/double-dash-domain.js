@@ -32,9 +32,10 @@ function mapDoubleDashDomainDNS(hostname) {
     });
 }
 exports.mapDoubleDashDomainDNS = mapDoubleDashDomainDNS;
+const doubledash = "--";
 function mapDoubleDashDomain(hostname, doubledashParentDomains) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        if (hostname.indexOf("--") < 0)
+        if (hostname.indexOf(doubledash) < 0)
             return;
         let parentdomain = "";
         for (const v of doubledashParentDomains) {

@@ -1,12 +1,12 @@
 import * as fs from 'fs'
 import { pki, md } from 'node-forge';
 
-interface certpair {
+interface CertPair {
     key: pki.PrivateKey;
     cert: pki.Certificate;
 }
 
-export function loadPairSync(keyfile: string, certfile: string): certpair {
+export function loadCertPairSync(keyfile: string, certfile: string): CertPair {
     const keyPem = fs.readFileSync(keyfile, 'utf8');
     const certPem = fs.readFileSync(certfile, 'utf8');
     const key = pki.privateKeyFromPem(keyPem);
@@ -14,12 +14,12 @@ export function loadPairSync(keyfile: string, certfile: string): certpair {
     return { key, cert }
 }
 
-const certificateCache: Map<string, certpair> = new Map<string, certpair>()
+const certificateCache: Map<string, CertPair> = new Map<string, CertPair>()
 interface createCertOptions {
     caKey: pki.PrivateKey
     caCert: pki.Certificate
 }
-export function createCert(domain: string, opts: createCertOptions): certpair {
+export function createCertPair(domain: string, opts: createCertOptions): CertPair {
     let pair = certificateCache.get(domain)
     if (pair) {
         return pair
