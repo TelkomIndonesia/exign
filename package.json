@@ -7,7 +7,7 @@
     "dep": "npm install --production=false",
     "build": "rm -f dist/* && npx tsc",
     "server": "node dist/server.js",
-    "test": "mocha"
+    "test": "nyc mocha"
   },
   "author": "I Putu Ariyasa",
   "license": "ISC",
@@ -39,6 +39,7 @@
     "eslint-plugin-mocha": "^10.0.5",
     "mocha": "^10.0.0",
     "nock": "^13.2.6",
+    "nyc": "^15.1.0",
     "supertest": "^6.2.3",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.3"
