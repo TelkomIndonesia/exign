@@ -37,16 +37,17 @@ function writeTmpFile(content: string) {
 
 function interceptReq(url: URL, method: string): Promise<ClientRequest & { headers: Record<string, string>, url: string }> {
     return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject("timeout after 5s")
+        }, 5000);
+
         nock(url.toString()).
             intercept(url.pathname, method).
             reply(200, function () {
+                clearTimeout(timeout)
                 const req = Object.assign(this.req, { url: url.pathname + url.search })
                 resolve(req)
             })
-
-        setTimeout(() => {
-            reject("timeout after 5s")
-        }, 5000);
     })
 }
 
