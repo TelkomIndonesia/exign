@@ -2,7 +2,10 @@
   "name": "httpsig-mproxy-front",
   "version": "0.1.0",
   "description": "local reverse proxy to add signature to received HTTP Requests",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "bin": {
+    "httpsig-mproxy-front": "./dist/server.js"
+  },
   "scripts": {
     "dep": "npm install --production=false",
     "build": "rm -f dist/* && npx tsc",

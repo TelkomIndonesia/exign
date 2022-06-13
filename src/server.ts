@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import http from "http"
 import https from "https"
 import tls from "tls"
