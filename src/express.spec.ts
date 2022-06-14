@@ -57,7 +57,7 @@ function newTestApp(): { app: Application, cleanup: () => void } {
 
     const app = newApp({
         doubleDashParentDomains: ["domain.test"],
-        clientMaxBufferSize: config.clientMaxBufferSize,
+        clientBodyBufferSize: config.clientBodyBufferSize,
         signature: {
             keyfile: key,
             pubkeyfile: pub,

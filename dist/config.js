@@ -2,7 +2,7 @@
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = {
-    clientMaxBufferSize: parseInt(process.env.MPROXY_FRONT_CLIENT_MAX_BUFFER_SIZE || "") || 8192,
+    clientBodyBufferSize: parseInt(process.env.MPROXY_FRONT_CLIENT_BODY_BUFFER_SIZE || "") || 8192,
     doubleDashParentDomains: ((_a = process.env.MPROXY_FRONT_DOUBLEDASH_PARENT_DOMAINS) === null || _a === void 0 ? void 0 : _a.split(",")) || [],
     signature: {
         keyfile: process.env.MPROXY_FRONT_SIGNATURE_KEYFILE || "./keys/signature/key.pem",

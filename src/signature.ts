@@ -8,7 +8,7 @@ import { tmpFilename } from './util';
 import httpSignature from 'http-signature';
 
 interface DigestOptions {
-    maxBufferSize?: number
+    bufferSize?: number
 }
 export async function digest(req: IncomingMessage, opts?: DigestOptions): Promise<{ digest: string, body: string | Readable }> {
     const digest = new Promise<string>((resolve, reject) => {
@@ -22,7 +22,7 @@ export async function digest(req: IncomingMessage, opts?: DigestOptions): Promis
     })
 
     let body: string | Readable
-    if ((req.headers["content-length"] || 0) > (opts?.maxBufferSize || 8192)) {
+    if ((req.headers["content-length"] || 0) > (opts?.bufferSize || 8192)) {
         const { filepath, cleanup } = tmpFilename()
         await pipeline(req, createWriteStream(filepath))
         body = createReadStream(filepath).on("close", () => cleanup())

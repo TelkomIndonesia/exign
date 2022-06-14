@@ -32,7 +32,7 @@ function newSignatureHandler(opts) {
     });
     const fn = function signatureHandler(req, res) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const { digest: digestValue, body } = yield (0, signature_1.digest)(req, { maxBufferSize: opts.clientMaxBufferSize });
+            const { digest: digestValue, body } = yield (0, signature_1.digest)(req, { bufferSize: opts.clientBodyBufferSize });
             req.headers["digest"] = digestValue;
             const targetHost = (yield (0, double_dash_domain_1.mapDoubleDashDomain)(req.hostname, opts.doubleDashParentDomains)) || req.hostname;
             proxy.web(req, res, {

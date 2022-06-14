@@ -30,7 +30,7 @@ function newSignatureHandler(opts: AppOptions): RequestHandler {
             sign(proxyReq, { key: key, pubKey: pubKey })
         })
     const fn = async function signatureHandler(req: Request, res: Response) {
-        const { digest: digestValue, body } = await digest(req, { maxBufferSize: opts.clientMaxBufferSize })
+        const { digest: digestValue, body } = await digest(req, { bufferSize: opts.clientBodyBufferSize })
         req.headers["digest"] = digestValue
 
         const targetHost = await mapDoubleDashDomain(req.hostname, opts.doubleDashParentDomains) || req.hostname
@@ -51,7 +51,7 @@ interface AppOptions {
         keyfile: string,
         pubkeyfile: string
     },
-    clientMaxBufferSize: number
+    clientBodyBufferSize: number
     doubleDashParentDomains: string[]
 }
 

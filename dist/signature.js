@@ -22,7 +22,7 @@ function digest(req, opts) {
             });
         });
         let body;
-        if ((req.headers["content-length"] || 0) > ((opts === null || opts === void 0 ? void 0 : opts.maxBufferSize) || 8192)) {
+        if ((req.headers["content-length"] || 0) > ((opts === null || opts === void 0 ? void 0 : opts.bufferSize) || 8192)) {
             const { filepath, cleanup } = (0, util_1.tmpFilename)();
             yield (0, promises_1.pipeline)(req, (0, node_fs_1.createWriteStream)(filepath));
             body = (0, node_fs_1.createReadStream)(filepath).on("close", () => cleanup());

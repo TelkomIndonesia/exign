@@ -4,7 +4,7 @@ interface AppOptions {
         keyfile: string;
         pubkeyfile: string;
     };
-    clientMaxBufferSize: number;
+    clientBodyBufferSize: number;
     doubleDashParentDomains: string[];
 }
 declare function newApp(opts: AppOptions): Application;

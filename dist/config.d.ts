@@ -1,5 +1,5 @@
 declare const _default: {
-    clientMaxBufferSize: number;
+    clientBodyBufferSize: number;
     doubleDashParentDomains: string[];
     signature: {
         keyfile: string;

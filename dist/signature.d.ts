@@ -3,7 +3,7 @@
 import { ClientRequest, IncomingMessage } from 'node:http';
 import { Readable } from 'node:stream';
 interface DigestOptions {
-    maxBufferSize?: number;
+    bufferSize?: number;
 }
 export declare function digest(req: IncomingMessage, opts?: DigestOptions): Promise<{
     digest: string;
