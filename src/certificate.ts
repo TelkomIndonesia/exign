@@ -1,4 +1,4 @@
-import * as fs from 'fs'
+import { readFileSync } from 'fs';
 import { pki, md } from 'node-forge';
 
 interface CertPair {
@@ -7,8 +7,8 @@ interface CertPair {
 }
 
 export function loadCertPairSync(keyfile: string, certfile: string): CertPair {
-    const keyPem = fs.readFileSync(keyfile, 'utf8');
-    const certPem = fs.readFileSync(certfile, 'utf8');
+    const keyPem = readFileSync(keyfile, 'utf8');
+    const certPem = readFileSync(certfile, 'utf8');
     const key = pki.privateKeyFromPem(keyPem);
     const cert = pki.certificateFromPem(certPem);
     return { key, cert }

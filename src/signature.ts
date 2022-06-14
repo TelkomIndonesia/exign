@@ -1,20 +1,18 @@
-import * as crypto from 'node:crypto';
-import * as httpSignature from 'http-signature';
-import * as sshpk from 'sshpk';
-import * as fs from 'fs';
+import { createHash } from 'node:crypto';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { ClientRequest, IncomingMessage } from 'node:http';
 import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream';
-import { promisify } from 'node:util';
+import { pipeline } from 'node:stream/promises';
+import { parseKey } from 'sshpk';
 import { tmpFilename } from './util';
-const pipelineProm = promisify(pipeline)
+import httpSignature from 'http-signature';
 
 interface DigestOptions {
     maxBufferSize?: number
 }
 export async function digest(req: IncomingMessage, opts?: DigestOptions): Promise<{ digest: string, body: string | Readable }> {
     const digest = new Promise<string>((resolve, reject) => {
-        const hash = crypto.createHash("sha256")
+        const hash = createHash("sha256")
         req.on("data", chunk => hash.update(chunk)).
             on("error", err => reject(err)).
             on("end", () => {
@@ -26,8 +24,8 @@ export async function digest(req: IncomingMessage, opts?: DigestOptions): Promis
     let body: string | Readable
     if ((req.headers["content-length"] || 0) > (opts?.maxBufferSize || 8192)) {
         const { filepath, cleanup } = tmpFilename()
-        await pipelineProm(req, fs.createWriteStream(filepath))
-        body = fs.createReadStream(filepath).on("close", () => cleanup())
+        await pipeline(req, createWriteStream(filepath))
+        body = createReadStream(filepath).on("close", () => cleanup())
 
     } else {
         const buffers = [];
@@ -53,7 +51,7 @@ export const noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([signat
 
 function keyFingerprint(key: string): string {
     try {
-        return sshpk.parseKey(key).fingerprint('sha256').toString()
+        return parseKey(key).fingerprint('sha256').toString()
     } catch {
         return ""
     }

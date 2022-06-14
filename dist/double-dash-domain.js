@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mapDoubleDashDomain = exports.mapDoubleDashDomainDNS = void 0;
 const tslib_1 = require("tslib");
-const dns = tslib_1.__importStar(require("node:dns"));
+const promises_1 = require("dns/promises");
 const ttlcache_1 = tslib_1.__importDefault(require("@isaacs/ttlcache"));
 const doubleDashDomainDNSCache = new ttlcache_1.default({ ttl: 1000 * 60, max: 100 });
 const key = "double-dash-domain";
@@ -13,7 +13,7 @@ function mapDoubleDashDomainDNS(hostname) {
             return v;
         let txt;
         try {
-            txt = yield dns.promises.resolveTxt(hostname);
+            txt = yield (0, promises_1.resolveTxt)(hostname);
         }
         catch (err) {
             return "";

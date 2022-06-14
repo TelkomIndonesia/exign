@@ -2,20 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sign = exports.noVerifyHeaders = exports.digest = void 0;
 const tslib_1 = require("tslib");
-const crypto = tslib_1.__importStar(require("node:crypto"));
-const httpSignature = tslib_1.__importStar(require("http-signature"));
-const sshpk = tslib_1.__importStar(require("sshpk"));
-const fs = tslib_1.__importStar(require("fs"));
-const node_stream_1 = require("node:stream");
-const node_util_1 = require("node:util");
+const node_crypto_1 = require("node:crypto");
+const node_fs_1 = require("node:fs");
+const promises_1 = require("node:stream/promises");
+const sshpk_1 = require("sshpk");
 const util_1 = require("./util");
-const pipelineProm = (0, node_util_1.promisify)(node_stream_1.pipeline);
+const http_signature_1 = tslib_1.__importDefault(require("http-signature"));
 function digest(req, opts) {
     var req_1, req_1_1;
     var e_1, _a;
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const digest = new Promise((resolve, reject) => {
-            const hash = crypto.createHash("sha256");
+            const hash = (0, node_crypto_1.createHash)("sha256");
             req.on("data", chunk => hash.update(chunk)).
                 on("error", err => reject(err)).
                 on("end", () => {
@@ -26,8 +24,8 @@ function digest(req, opts) {
         let body;
         if ((req.headers["content-length"] || 0) > ((opts === null || opts === void 0 ? void 0 : opts.maxBufferSize) || 8192)) {
             const { filepath, cleanup } = (0, util_1.tmpFilename)();
-            yield pipelineProm(req, fs.createWriteStream(filepath));
-            body = fs.createReadStream(filepath).on("close", () => cleanup());
+            yield (0, promises_1.pipeline)(req, (0, node_fs_1.createWriteStream)(filepath));
+            body = (0, node_fs_1.createReadStream)(filepath).on("close", () => cleanup());
         }
         else {
             const buffers = [];
@@ -64,7 +62,7 @@ const signatureHeader = "signature";
 exports.noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([signatureHeader]);
 function keyFingerprint(key) {
     try {
-        return sshpk.parseKey(key).fingerprint('sha256').toString();
+        return (0, sshpk_1.parseKey)(key).fingerprint('sha256').toString();
     }
     catch (_a) {
         return "";
@@ -74,7 +72,7 @@ function sign(req, opts) {
     const addParam = ["(request-target)"];
     if (!req.hasHeader("date"))
         addParam.push("date"); // the header will be added by the library
-    httpSignature.sign(req, {
+    http_signature_1.default.sign(req, {
         key: opts.key,
         keyId: opts.keyId || (opts.pubKey ? keyFingerprint(opts.pubKey) : ""),
         authorizationHeaderName: signatureHeader,

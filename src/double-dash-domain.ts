@@ -1,5 +1,5 @@
-import * as dns from 'node:dns'
-import TTLCache from '@isaacs/ttlcache'
+import { resolveTxt } from "dns/promises"
+import TTLCache from "@isaacs/ttlcache"
 
 const doubleDashDomainDNSCache = new TTLCache({ ttl: 1000 * 60, max: 100 })
 const key = "double-dash-domain"
@@ -11,7 +11,7 @@ export async function mapDoubleDashDomainDNS(hostname: string): Promise<string> 
 
     let txt: string[][]
     try {
-        txt = await dns.promises.resolveTxt(hostname)
+        txt = await resolveTxt(hostname)
     } catch (err) {
         return ""
     }
