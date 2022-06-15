@@ -1,13 +1,29 @@
-/*eslint-env node*/
 module.exports = {
-    root: true,
-    parser: '@typescript-eslint/parser',
-    plugins: [
-      '@typescript-eslint',
-    ],
-    extends: [
-      'eslint:recommended',
-      'plugin:@typescript-eslint/recommended',
-      "plugin:mocha/recommended"
-    ],
-  };     
+  env: {
+    browser: true,
+    es2021: true
+  },
+  extends: [
+    'standard',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:mocha/recommended'
+  ],
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module'
+  },
+  plugins: [
+    '@typescript-eslint'
+  ],
+  rules: {
+  },
+  overrides: [
+    {
+      files: ['src/**/*.spec.ts'],
+      rules: {
+        'no-unused-expressions': 'off'
+      }
+    }
+  ]
+}

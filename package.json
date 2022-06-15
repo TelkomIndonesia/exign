@@ -4,12 +4,12 @@
   "description": "local reverse proxy to add signature to received HTTP Requests",
   "main": "./dist/index.js",
   "bin": {
-    "httpsig-mproxy-front": "./dist/server.js"
+    "httpsig-mproxy-front": "./dist/main.js"
   },
   "scripts": {
     "dep": "npm install --production=false",
-    "build": "rm -f dist/* && npx tsc",
-    "server": "node dist/server.js",
+    "build": "rimraf dist && npx tsc",
+    "server": "node dist/main.js",
     "test": "nyc mocha"
   },
   "author": "I Putu Ariyasa",
@@ -34,15 +34,20 @@
     "@types/sshpk": "^1.17.0",
     "@types/supertest": "^2.0.12",
     "@types/uuid": "^8.3.4",
-    "@typescript-eslint/eslint-plugin": "^5.27.1",
-    "@typescript-eslint/parser": "^5.27.1",
+    "@typescript-eslint/eslint-plugin": "^5.28.0",
+    "@typescript-eslint/parser": "^5.28.0",
     "chai": "^4.3.6",
     "chai-http": "^4.3.0",
     "eslint": "^8.17.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-mocha": "^10.0.5",
+    "eslint-plugin-n": "^15.2.2",
+    "eslint-plugin-promise": "^6.0.0",
     "mocha": "^10.0.0",
     "nock": "^13.2.6",
     "nyc": "^15.1.0",
+    "rimraf": "^3.0.2",
     "supertest": "^6.2.3",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.3"

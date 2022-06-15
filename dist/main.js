@@ -31,4 +31,4 @@ http_1.default.createServer(app).
     listen(80, () => console.log('HTTP Server running on port 80'));
 https_1.default.createServer(httpsServerOptions, app).
     listen(443, () => console.log('HTTPS Server running on port 443'));
-//# sourceMappingURL=server.js.map
+//# sourceMappingURL=main.js.map
