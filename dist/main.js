@@ -11,14 +11,14 @@ const certificate_1 = require("./certificate");
 const config_1 = tslib_1.__importDefault(require("./config"));
 const app = (0, express_1.default)(config_1.default);
 const { key: caKey, cert: caCert } = (0, certificate_1.loadCertPairSync)(config_1.default.transport.caKeyfile, config_1.default.transport.caCertfile);
-const { key: localhostKey, cert: localhostCert } = (0, certificate_1.createCertPair)("localhost", { caKey, caCert });
+const { key: localhostKey, cert: localhostCert } = (0, certificate_1.createCertPair)('localhost', { caKey, caCert });
 function sniCallback(domain, cb) {
     console.log(`received SNI request for: ${domain} domain`);
     const { key, cert } = (0, certificate_1.createCertPair)(domain, { caKey, caCert });
     cb(null, tls_1.default.createSecureContext({
         key: node_forge_1.pki.privateKeyToPem(key),
         cert: node_forge_1.pki.certificateToPem(cert),
-        ca: node_forge_1.pki.certificateToPem(caCert),
+        ca: node_forge_1.pki.certificateToPem(caCert)
     }).context);
 }
 const httpsServerOptions = {
@@ -27,8 +27,8 @@ const httpsServerOptions = {
     cert: node_forge_1.pki.certificateToPem(localhostCert),
     ca: node_forge_1.pki.certificateToPem(caCert)
 };
-http_1.default.createServer(app).
-    listen(80, () => console.log('HTTP Server running on port 80'));
-https_1.default.createServer(httpsServerOptions, app).
-    listen(443, () => console.log('HTTPS Server running on port 443'));
+http_1.default.createServer(app)
+    .listen(80, () => console.log('HTTP Server running on port 80'));
+https_1.default.createServer(httpsServerOptions, app)
+    .listen(443, () => console.log('HTTPS Server running on port 443'));
 //# sourceMappingURL=main.js.map

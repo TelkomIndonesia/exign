@@ -37,18 +37,29 @@ function createCertPair(domain, opts) {
         { name: 'basicConstraints', cA: false },
         {
             name: 'keyUsage',
-            keyCertSign: true, digitalSignature: true, nonRepudiation: true,
-            keyEncipherment: true, dataEncipherment: true
+            keyCertSign: true,
+            digitalSignature: true,
+            nonRepudiation: true,
+            keyEncipherment: true,
+            dataEncipherment: true
         },
         {
             name: 'extKeyUsage',
-            serverAuth: true, clientAuth: true, codeSigning: true,
-            emailProtection: true, timeStamping: true
+            serverAuth: true,
+            clientAuth: true,
+            codeSigning: true,
+            emailProtection: true,
+            timeStamping: true
         },
         {
             name: 'nsCertType',
-            client: true, server: true, email: true, objsign: true,
-            sslCA: false, emailCA: false, objCA: false
+            client: true,
+            server: true,
+            email: true,
+            objsign: true,
+            sslCA: false,
+            emailCA: false,
+            objCA: false
         },
         {
             name: 'subjectAltName',
