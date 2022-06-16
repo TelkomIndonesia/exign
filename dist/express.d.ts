@@ -7,5 +7,5 @@ interface AppOptions {
     clientBodyBufferSize: number;
     doubleDashParentDomains: string[];
 }
-declare function newApp(opts: AppOptions): Application;
-export default newApp;
+export declare function newApp(opts: AppOptions): Application;
+export {};

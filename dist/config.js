@@ -1,7 +1,8 @@
 "use strict";
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = {
+exports.config = void 0;
+exports.config = {
     clientBodyBufferSize: parseInt(process.env.MPROXY_FRONT_CLIENT_BODY_BUFFER_SIZE || '') || 8192,
     doubleDashParentDomains: ((_a = process.env.MPROXY_FRONT_DOUBLEDASH_PARENT_DOMAINS) === null || _a === void 0 ? void 0 : _a.split(',')) || [],
     signature: {

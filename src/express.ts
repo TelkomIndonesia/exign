@@ -57,11 +57,9 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
   return fn
 }
 
-function newApp (opts: AppOptions): Application {
+export function newApp (opts: AppOptions): Application {
   const app = express()
   app.use(loggerMiddleware)
   app.all('/*', newSignatureHandler(opts))
   return app
 }
-
-export default newApp

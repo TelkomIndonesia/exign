@@ -1,4 +1,4 @@
-export default {
+export const config = {
   clientBodyBufferSize: parseInt(process.env.MPROXY_FRONT_CLIENT_BODY_BUFFER_SIZE || '') || 8192,
   doubleDashParentDomains: process.env.MPROXY_FRONT_DOUBLEDASH_PARENT_DOMAINS?.split(',') || [],
   signature: {

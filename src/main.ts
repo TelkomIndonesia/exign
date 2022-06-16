@@ -1,12 +1,10 @@
-#!/usr/bin/env node
-
 import http from 'http'
 import https from 'https'
 import tls from 'tls'
 import { pki } from 'node-forge'
-import newApp from './express'
+import { newApp } from './express'
 import { createCertPair, loadCertPairSync } from './certificate'
-import config from './config'
+import { config } from './config'
 
 const app = newApp(config)
 const { key: caKey, cert: caCert } = loadCertPairSync(config.transport.caKeyfile, config.transport.caCertfile)

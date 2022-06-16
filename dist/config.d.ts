@@ -1,4 +1,4 @@
-declare const _default: {
+export declare const config: {
     clientBodyBufferSize: number;
     doubleDashParentDomains: string[];
     signature: {
@@ -10,4 +10,3 @@ declare const _default: {
         caCertfile: string;
     };
 };
-export default _default;

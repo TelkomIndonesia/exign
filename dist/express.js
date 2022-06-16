@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.newApp = void 0;
 const tslib_1 = require("tslib");
 const stream_1 = require("stream");
 const fs_1 = require("fs");
@@ -55,5 +56,5 @@ function newApp(opts) {
     app.all('/*', newSignatureHandler(opts));
     return app;
 }
-exports.default = newApp;
+exports.newApp = newApp;
 //# sourceMappingURL=express.js.map
