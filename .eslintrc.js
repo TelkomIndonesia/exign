@@ -5,8 +5,7 @@ module.exports = {
   },
   extends: [
     'standard',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:mocha/recommended'
+    'plugin:@typescript-eslint/recommended'
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -18,13 +17,5 @@ module.exports = {
   ],
   rules: {
   },
-  overrides: [
-    {
-      files: ['src/**/*.spec.ts'],
-      rules: {
-        'no-unused-expressions': 'off'
-      }
-    }
-  ],
   ignorePatterns: ['dist']
 }

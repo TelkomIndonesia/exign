@@ -1,4 +1,3 @@
-import { expect } from 'chai'
 import request from 'supertest'
 import * as httpSignature from 'http-signature'
 import nock from 'nock'
@@ -72,16 +71,16 @@ function newTestApp (): { app: Application, cleanup: () => void } {
 describe('Express App', function () {
   const deferrers: { (): void }[] = []
   let app: Application
-  before(function () {
+  beforeEach(function () {
     let cleanup: () => void
     ({ app, cleanup } = newTestApp())
     deferrers.push(cleanup)
   })
-  after(function () {
+  afterEach(function () {
     for (const fn of deferrers) fn()
   })
 
-  it('should sign and proxy the ClientRequest', async function () {
+  test('should sign and proxy the ClientRequest', async function () {
     const url = new URL('http://name.domain.test'); const method = 'get'
     const promReq = interceptReq(url, method)
     await request(app)
@@ -92,7 +91,7 @@ describe('Express App', function () {
       headers: Object.keys(req.headers)
         .filter(v => !noVerifyHeaders.includes(v))
     })
-    expect(parsed.keyId).to.be.equal(testKey.id)
-    expect(httpSignature.verifySignature(parsed, testKey.public)).to.be.true
+    expect(parsed.keyId).toEqual(testKey.id)
+    expect(httpSignature.verifySignature(parsed, testKey.public)).toEqual(true)
   })
 })

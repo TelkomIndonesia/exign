@@ -22,7 +22,7 @@
         "outDir": "./dist/",
         "types": [
             "node",
-            "mocha"
+            "jest"
         ],
         "lib": [
             "ES6",
@@ -36,7 +36,4 @@
         "src/**/*.spec.ts",
         "node_modules",
     ],
-    "ts-node": {
-        "files": true
-    }
 }
