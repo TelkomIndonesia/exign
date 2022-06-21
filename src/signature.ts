@@ -70,6 +70,6 @@ export function sign (req: ClientRequest, opts: SignOptions) {
     authorizationHeaderName: signatureHeader,
     headers: Object.keys(req.getHeaders())
       .concat(addParam)
-      .filter(v => !hopByHopHeaders.get(v.toLowerCase()))
+      .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v.toLowerCase()))
   })
 }
