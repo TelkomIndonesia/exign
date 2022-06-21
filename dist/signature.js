@@ -78,7 +78,7 @@ function sign(req, opts) {
         authorizationHeaderName: signatureHeader,
         headers: Object.keys(req.getHeaders())
             .concat(addParam)
-            .filter(v => !hopByHopHeaders.get(v.toLowerCase()))
+            .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v.toLowerCase()))
     });
 }
 exports.sign = sign;
