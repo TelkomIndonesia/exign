@@ -77,8 +77,8 @@ function sign(req, opts) {
         keyId: opts.keyId || (opts.pubKey ? keyFingerprint(opts.pubKey) : ''),
         authorizationHeaderName: signatureHeader,
         headers: Object.keys(req.getHeaders())
-            .concat(addParam)
             .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v.toLowerCase()))
+            .concat(addParam)
     });
 }
 exports.sign = sign;
