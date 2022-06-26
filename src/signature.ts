@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { ClientRequest, IncomingMessage } from 'node:http'
-import { Readable } from 'node:stream'
+import { ClientRequest } from 'node:http'
+import { Readable, Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { parseKey } from 'sshpk'
 import { tmpFilename } from './util'
@@ -10,29 +10,44 @@ import httpSignature from 'http-signature'
 interface DigestOptions {
     bufferSize?: number
 }
-export async function digest (req: IncomingMessage, opts?: DigestOptions): Promise<{ digest: string, body: string | Readable }> {
-  const digest = new Promise<string>((resolve, reject) => {
-    const hash = createHash('sha256')
-    req.on('data', chunk => hash.update(chunk))
-      .on('error', err => reject(err))
-      .on('end', () => {
-        const digest = `SHA-256=${hash.digest('base64').toString()}`
-        resolve(digest)
-      })
-  })
+export async function digest (input: Readable, opts?: DigestOptions): Promise<{ digest: string, data: Readable }> {
+  const hash = createHash('sha256')
+  const hashpipe = pipeline(input, hash)
 
-  let body: string | Readable
-  if ((req.headers['content-length'] || 0) > (opts?.bufferSize || 8192)) {
-    const { filepath, cleanup } = tmpFilename()
-    await pipeline(req, createWriteStream(filepath))
-    body = createReadStream(filepath).on('close', () => cleanup())
-  } else {
-    const buffers = []
-    for await (const chunk of req) buffers.push(chunk)
-    body = Buffer.concat(buffers).toString()
+  const buffers = []
+  const maxBufSize = opts?.bufferSize || 8192
+  let filepath: string | undefined
+  let cleanup: (() => void) | undefined
+  let tmpFile: Writable | undefined
+  for await (const chunk of input) {
+    if (!tmpFile && buffers.length + chunk.length <= maxBufSize) {
+      buffers.push(chunk)
+      continue
+    }
+
+    if (!tmpFile) {
+      ({ filepath, cleanup } = tmpFilename())
+      tmpFile = createWriteStream(filepath)
+      tmpFile.write(Buffer.from(buffers))
+    }
+
+    const ok = tmpFile.write(chunk)
+    if (!ok) {
+      await new Promise(resolve => tmpFile?.on('drain', resolve))
+    }
   }
 
-  return { digest: await digest, body }
+  await hashpipe; const digest = 'SHA-256=' + hash.digest('base64').toString()
+
+  let data: string | Readable
+  if (tmpFile && filepath && cleanup) {
+    tmpFile.end()
+    data = createReadStream(filepath).on('close', cleanup)
+  } else {
+    data = Readable.from(buffers)
+  }
+
+  return { data, digest }
 }
 
 const hopByHopHeaders = new Map<string, boolean>([

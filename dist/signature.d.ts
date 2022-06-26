@@ -1,13 +1,13 @@
 /// <reference types="node" />
 /// <reference types="node" />
-import { ClientRequest, IncomingMessage } from 'node:http';
+import { ClientRequest } from 'node:http';
 import { Readable } from 'node:stream';
 interface DigestOptions {
     bufferSize?: number;
 }
-export declare function digest(req: IncomingMessage, opts?: DigestOptions): Promise<{
+export declare function digest(input: Readable, opts?: DigestOptions): Promise<{
     digest: string;
-    body: string | Readable;
+    data: Readable;
 }>;
 export declare const noVerifyHeaders: string[];
 interface SignOptions {

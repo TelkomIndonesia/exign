@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.newApp = void 0;
 const tslib_1 = require("tslib");
-const stream_1 = require("stream");
 const fs_1 = require("fs");
 const express_1 = tslib_1.__importDefault(require("express"));
 const signature_1 = require("./signature");
@@ -31,24 +30,20 @@ function newSignatureHandler(opts) {
         .on('proxyReq', function onProxyReq(proxyReq) {
         (0, signature_1.sign)(proxyReq, { key, pubKey });
     });
-    const fn = function signatureHandler(req, res) {
+    return function signatureHandler(req, res) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const { digest: digestValue, body } = yield (0, signature_1.digest)(req, { bufferSize: opts.clientBodyBufferSize });
-            req.headers.digest = digestValue;
+            const { digest: digestValue, data } = yield (0, signature_1.digest)(req, { bufferSize: opts.clientBodyBufferSize });
+            res.on('close', () => data.destroy());
             const targetHost = (yield (0, double_dash_domain_1.mapDoubleDashDomain)(req.hostname, opts.doubleDashParentDomains)) || req.hostname;
             proxy.web(req, res, {
                 changeOrigin: false,
                 target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
                 secure: (process.env.MPROXY_FRONT_PROXY_SECURE || 'true') === 'true',
-                buffer: body instanceof stream_1.Readable
-                    ? body
-                    : body
-                        ? stream_1.Readable.from(body)
-                        : undefined
+                buffer: data,
+                headers: { digest: digestValue }
             });
         });
     };
-    return fn;
 }
 function newApp(opts) {
     const app = (0, express_1.default)();

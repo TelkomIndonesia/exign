@@ -4,47 +4,58 @@ exports.sign = exports.noVerifyHeaders = exports.digest = void 0;
 const tslib_1 = require("tslib");
 const node_crypto_1 = require("node:crypto");
 const node_fs_1 = require("node:fs");
+const node_stream_1 = require("node:stream");
 const promises_1 = require("node:stream/promises");
 const sshpk_1 = require("sshpk");
 const util_1 = require("./util");
 const http_signature_1 = tslib_1.__importDefault(require("http-signature"));
-function digest(req, opts) {
-    var req_1, req_1_1;
+function digest(input, opts) {
+    var input_1, input_1_1;
     var e_1, _a;
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        const digest = new Promise((resolve, reject) => {
-            const hash = (0, node_crypto_1.createHash)('sha256');
-            req.on('data', chunk => hash.update(chunk))
-                .on('error', err => reject(err))
-                .on('end', () => {
-                const digest = `SHA-256=${hash.digest('base64').toString()}`;
-                resolve(digest);
-            });
-        });
-        let body;
-        if ((req.headers['content-length'] || 0) > ((opts === null || opts === void 0 ? void 0 : opts.bufferSize) || 8192)) {
-            const { filepath, cleanup } = (0, util_1.tmpFilename)();
-            yield (0, promises_1.pipeline)(req, (0, node_fs_1.createWriteStream)(filepath));
-            body = (0, node_fs_1.createReadStream)(filepath).on('close', () => cleanup());
+        const hash = (0, node_crypto_1.createHash)('sha256');
+        const hashpipe = (0, promises_1.pipeline)(input, hash);
+        const buffers = [];
+        const maxBufSize = (opts === null || opts === void 0 ? void 0 : opts.bufferSize) || 8192;
+        let filepath;
+        let cleanup;
+        let tmpFile;
+        try {
+            for (input_1 = tslib_1.__asyncValues(input); input_1_1 = yield input_1.next(), !input_1_1.done;) {
+                const chunk = input_1_1.value;
+                if (!tmpFile && buffers.length + chunk.length <= maxBufSize) {
+                    buffers.push(chunk);
+                    continue;
+                }
+                if (!tmpFile) {
+                    ({ filepath, cleanup } = (0, util_1.tmpFilename)());
+                    tmpFile = (0, node_fs_1.createWriteStream)(filepath);
+                    tmpFile.write(Buffer.from(buffers));
+                }
+                const ok = tmpFile.write(chunk);
+                if (!ok) {
+                    yield new Promise(resolve => tmpFile === null || tmpFile === void 0 ? void 0 : tmpFile.on('drain', resolve));
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (input_1_1 && !input_1_1.done && (_a = input_1.return)) yield _a.call(input_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        yield hashpipe;
+        const digest = 'SHA-256=' + hash.digest('base64').toString();
+        let data;
+        if (tmpFile && filepath && cleanup) {
+            tmpFile.end();
+            data = (0, node_fs_1.createReadStream)(filepath).on('close', cleanup);
         }
         else {
-            const buffers = [];
-            try {
-                for (req_1 = tslib_1.__asyncValues(req); req_1_1 = yield req_1.next(), !req_1_1.done;) {
-                    const chunk = req_1_1.value;
-                    buffers.push(chunk);
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (req_1_1 && !req_1_1.done && (_a = req_1.return)) yield _a.call(req_1);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            body = Buffer.concat(buffers).toString();
+            data = node_stream_1.Readable.from(buffers);
         }
-        return { digest: yield digest, body };
+        return { data, digest };
     });
 }
 exports.digest = digest;
