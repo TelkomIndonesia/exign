@@ -39,7 +39,7 @@ export async function digest (input: Readable, opts?: DigestOptions): Promise<{ 
 
   await hashpipe; const digest = 'SHA-256=' + hash.digest('base64').toString()
 
-  let data: string | Readable
+  let data: Readable
   if (tmpFile && filepath && cleanup) {
     tmpFile.end()
     data = createReadStream(filepath).on('close', cleanup)
