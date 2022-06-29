@@ -7,13 +7,13 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const signature_1 = require("./signature");
 const double_dash_domain_1 = require("./double-dash-domain");
 const proxy_1 = require("./proxy");
-function loggerMiddleware(req, res, next) {
+function log(req, res) {
     res.on('close', function log() {
         console.log({
             request: {
                 method: req.method,
-                url: req.originalUrl,
-                headers: req.headers
+                url: `${req.protocol}//${req.host}${req.path}`,
+                headers: req.getHeaders()
             },
             response: {
                 status: res.statusCode,
@@ -21,13 +21,13 @@ function loggerMiddleware(req, res, next) {
             }
         });
     });
-    next();
 }
 function newSignatureHandler(opts) {
     const key = (0, fs_1.readFileSync)(opts.signature.keyfile, 'utf8');
     const pubKey = (0, fs_1.readFileSync)(opts.signature.pubkeyfile, 'utf8');
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
-        .on('proxyReq', function onProxyReq(proxyReq) {
+        .on('proxyReq', function onProxyReq(proxyReq, _, res) {
+        log(proxyReq, res);
         (0, signature_1.sign)(proxyReq, { key, pubKey });
     });
     return function signatureHandler(req, res) {
@@ -47,9 +47,8 @@ function newSignatureHandler(opts) {
 }
 function newApp(opts) {
     const app = (0, express_1.default)();
-    app.use(loggerMiddleware);
     app.all('/*', newSignatureHandler(opts));
     return app;
 }
 exports.newApp = newApp;
-//# sourceMappingURL=express.js.map
+//# sourceMappingURL=app.js.map

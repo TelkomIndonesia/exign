@@ -5,10 +5,10 @@ const http_1 = tslib_1.__importDefault(require("http"));
 const https_1 = tslib_1.__importDefault(require("https"));
 const tls_1 = tslib_1.__importDefault(require("tls"));
 const node_forge_1 = require("node-forge");
-const express_1 = require("./express");
+const app_1 = require("./app");
 const certificate_1 = require("./certificate");
 const config_1 = require("./config");
-const app = (0, express_1.newApp)(config_1.config);
+const app = (0, app_1.newApp)(config_1.config);
 const { key: caKey, cert: caCert } = (0, certificate_1.loadCertPairSync)(config_1.config.transport.caKeyfile, config_1.config.transport.caCertfile);
 const { key: localhostKey, cert: localhostCert } = (0, certificate_1.createCertPair)('localhost', { caKey, caCert });
 function sniCallback(domain, cb) {

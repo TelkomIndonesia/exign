@@ -1,16 +1,17 @@
 import { readFileSync } from 'fs'
-import express, { Application, NextFunction, Request, RequestHandler, Response } from 'express'
+import express, { Application, Request, RequestHandler, Response } from 'express'
 import { sign, digest } from './signature'
 import { mapDoubleDashDomain } from './double-dash-domain'
 import { createProxyServer } from './proxy'
+import { ClientRequest, ServerResponse } from 'http'
 
-function loggerMiddleware (req: Request, res: Response, next: NextFunction) {
+function log (req: ClientRequest, res: ServerResponse) {
   res.on('close', function log () {
     console.log({
       request: {
         method: req.method,
-        url: req.originalUrl,
-        headers: req.headers
+        url: `${req.protocol}//${req.host}${req.path}`,
+        headers: req.getHeaders()
       },
       response: {
         status: res.statusCode,
@@ -18,7 +19,6 @@ function loggerMiddleware (req: Request, res: Response, next: NextFunction) {
       }
     })
   })
-  next()
 }
 
 interface AppOptions {
@@ -34,7 +34,8 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
   const key = readFileSync(opts.signature.keyfile, 'utf8')
   const pubKey = readFileSync(opts.signature.pubkeyfile, 'utf8')
   const proxy = createProxyServer({ ws: true })
-    .on('proxyReq', function onProxyReq (proxyReq) {
+    .on('proxyReq', function onProxyReq (proxyReq, _, res) {
+      log(proxyReq, res)
       sign(proxyReq, { key, pubKey })
     })
 
@@ -55,7 +56,6 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
 
 export function newApp (opts: AppOptions): Application {
   const app = express()
-  app.use(loggerMiddleware)
   app.all('/*', newSignatureHandler(opts))
   return app
 }

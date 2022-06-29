@@ -2,7 +2,7 @@ import http from 'http'
 import https from 'https'
 import tls from 'tls'
 import { pki } from 'node-forge'
-import { newApp } from './express'
+import { newApp } from './app'
 import { createCertPair, loadCertPairSync } from './certificate'
 import { config } from './config'
 

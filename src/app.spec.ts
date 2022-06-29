@@ -6,7 +6,7 @@ import { ClientRequest } from 'http'
 import { noVerifyHeaders } from './signature'
 import { tmpFilename } from './util'
 import { writeFileSync } from 'fs'
-import { newApp } from './express'
+import { newApp } from './app'
 import { Application } from 'express'
 import { v4 as uuid4 } from 'uuid'
 
