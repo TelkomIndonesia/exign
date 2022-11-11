@@ -22,12 +22,12 @@ function log (req: ClientRequest, res: ServerResponse) {
 }
 
 interface AppOptions {
-    signature: {
-        keyfile: string,
-        pubkeyfile: string
-    },
-    clientBodyBufferSize: number
-    doubleDashParentDomains: string[]
+  signature: {
+    keyfile: string,
+    pubkeyfile: string
+  },
+  clientBodyBufferSize: number
+  doubleDashParentDomains: string[]
 }
 
 function newSignatureHandler (opts: AppOptions): RequestHandler {
@@ -47,7 +47,7 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
     proxy.web(req, res, {
       changeOrigin: false,
       target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
-      secure: (process.env.MPROXY_FRONT_PROXY_SECURE || 'true') === 'true',
+      secure: (process.env.FRPROXY_PROXY_SECURE || 'true') === 'true',
       buffer: data,
       headers: { digest: digestValue }
     })
