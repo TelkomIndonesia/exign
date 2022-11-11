@@ -16,7 +16,7 @@
   "author": "I Putu Ariyasa",
   "license": "ISC",
   "dependencies": {
-    "@isaacs/ttlcache": "^1.0.3",
+    "@isaacs/ttlcache": "^1.2.1",
     "express": "^4.18.1",
     "http-proxy": "^1.18.1",
     "http-signature": "^1.3.6",
