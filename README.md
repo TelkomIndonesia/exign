@@ -1,4 +1,4 @@
-# HTTP Signature Front-Reverse Proxy
+# HTTP Signature Forward-Reverse Proxy
 
 A reverse proxy that is able to add [signature header](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12) to all received request and forward the request to the actual server.
 
