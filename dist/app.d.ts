@@ -7,6 +7,7 @@ interface AppOptions {
     clientBodyBufferSize: number;
     doubleDashDomains: string[];
     hostmap: Map<string, string>;
+    secure: boolean;
 }
 export declare function newApp(opts: AppOptions): Application;
 export {};

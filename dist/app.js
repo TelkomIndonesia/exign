@@ -36,11 +36,10 @@ function newSignatureHandler(opts) {
             res.on('close', () => data.destroy());
             const targetHost = opts.hostmap.get(req.hostname) ||
                 (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.doubleDashDomains)) || req.hostname;
-            console.log(targetHost, process.env.FRPROXY_PROXY_SECURE);
             proxy.web(req, res, {
                 changeOrigin: false,
                 target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
-                secure: (process.env.FRPROXY_PROXY_SECURE || 'true') === 'true',
+                secure: opts.secure,
                 buffer: data,
                 headers: { digest: digestValue }
             });
