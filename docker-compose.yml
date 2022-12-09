@@ -8,11 +8,13 @@ services:
         condition: service_completed_successfully
     environment:
       FRPROXY_CLIENT_BODY_BUFFER_SIZE:
-      FRPROXY_DOUBLEDASH_PARENT_DOMAINS:
+      FRPROXY_DOUBLEDASH_DOMAINS:
       FRPROXY_SIGNATURE_KEYFILE:
       FRPROXY_SIGNATURE_PUBKEYFILE:
       FRPROXY_TRANSPORT_CA_KEYFILE:
       FRPROXY_TRANSPORT_CA_CERTFILE:
+      FRPROXY_PROXY_SECURE:
+      FRPROXY_HOSTMAP_PATH: 
     dns:
       - 8.8.8.8
       - 8.8.4.4

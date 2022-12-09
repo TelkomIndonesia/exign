@@ -1,15 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapDoubleDashDomain = exports.mapDoubleDashDomainDNS = void 0;
+exports.mapDoubleDashHostname = exports.mapDoubleDashHostnameDNS = void 0;
 const tslib_1 = require("tslib");
 const promises_1 = require("dns/promises");
 const ttlcache_1 = tslib_1.__importDefault(require("@isaacs/ttlcache"));
 const doubledash = '--';
-const doubleDashDomainDNSCache = new ttlcache_1.default({ ttl: 1000 * 60, max: 100 });
-const txtKey = 'double-dash-domain';
-function mapDoubleDashDomainDNS(hostname) {
+const doubledashTXTKey = 'double-dash-domain';
+const dnsCache = new ttlcache_1.default({ ttl: 1000 * 60, max: 100 });
+function mapDoubleDashHostnameDNS(hostname) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        const v = doubleDashDomainDNSCache.get(hostname);
+        const v = dnsCache.get(hostname);
         if (v !== undefined) {
             return v;
         }
@@ -23,44 +23,44 @@ function mapDoubleDashDomainDNS(hostname) {
         let domain = '';
         for (const records of txt) {
             for (let value of records) {
-                value = value.startsWith(txtKey + '=') ? value.substring(txtKey.length + 1) : '';
+                value = value.startsWith(doubledashTXTKey + '=') ? value.substring(doubledashTXTKey.length + 1) : '';
                 if (!hostname.endsWith('.' + value) || value.length < domain.length) {
                     continue;
                 }
                 domain = value;
             }
         }
-        doubleDashDomainDNSCache.set(hostname, domain);
+        dnsCache.set(hostname, domain);
         return domain;
     });
 }
-exports.mapDoubleDashDomainDNS = mapDoubleDashDomainDNS;
-function mapDoubleDashDomain(hostname, doubledashParentDomains) {
+exports.mapDoubleDashHostnameDNS = mapDoubleDashHostnameDNS;
+function mapDoubleDashHostname(hostname, doubledashdomain) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         if (hostname.indexOf(doubledash) < 0) {
             return;
         }
-        let parentdomain = '';
-        for (const v of doubledashParentDomains) {
-            if (!hostname.endsWith('.' + v) || v.length < parentdomain.length) {
+        let domain = '';
+        for (const v of doubledashdomain) {
+            if (!hostname.endsWith('.' + v) || v.length < domain.length) {
                 continue;
             }
-            parentdomain = v;
+            domain = v;
         }
-        if (!parentdomain) {
-            parentdomain = yield mapDoubleDashDomainDNS(hostname);
+        if (!domain) {
+            domain = yield mapDoubleDashHostnameDNS(hostname);
         }
-        if (!parentdomain) {
+        if (!domain) {
             return;
         }
         const part = hostname
-            .substring(0, hostname.indexOf('.' + parentdomain))
+            .substring(0, hostname.indexOf('.' + domain))
             .split(/--(?=[^-.])/);
         if (part.length === 0) {
             return;
         }
-        return part[part.length - 1] + '.' + parentdomain;
+        return part[part.length - 1] + '.' + domain;
     });
 }
-exports.mapDoubleDashDomain = mapDoubleDashDomain;
+exports.mapDoubleDashHostname = mapDoubleDashHostname;
 //# sourceMappingURL=double-dash-domain.js.map

@@ -1,2 +1,2 @@
-export declare function mapDoubleDashDomainDNS(hostname: string): Promise<string>;
-export declare function mapDoubleDashDomain(hostname: string, doubledashParentDomains: string[]): Promise<string | undefined>;
+export declare function mapDoubleDashHostnameDNS(hostname: string): Promise<string>;
+export declare function mapDoubleDashHostname(hostname: string, doubledashdomain: string[]): Promise<string | undefined>;

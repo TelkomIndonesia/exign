@@ -1,6 +1,7 @@
 export declare const config: {
     clientBodyBufferSize: number;
-    doubleDashParentDomains: string[];
+    hostmap: Map<string, string>;
+    doubleDashDomains: string[];
     signature: {
         keyfile: string;
         pubkeyfile: string;

@@ -34,7 +34,9 @@ function newSignatureHandler(opts) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const { digest: digestValue, data } = yield (0, signature_1.digest)(req, { bufferSize: opts.clientBodyBufferSize });
             res.on('close', () => data.destroy());
-            const targetHost = (yield (0, double_dash_domain_1.mapDoubleDashDomain)(req.hostname, opts.doubleDashParentDomains)) || req.hostname;
+            const targetHost = opts.hostmap.get(req.hostname) ||
+                (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.doubleDashDomains)) || req.hostname;
+            console.log(targetHost, process.env.FRPROXY_PROXY_SECURE);
             proxy.web(req, res, {
                 changeOrigin: false,
                 target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,

@@ -5,7 +5,8 @@ interface AppOptions {
         pubkeyfile: string;
     };
     clientBodyBufferSize: number;
-    doubleDashParentDomains: string[];
+    doubleDashDomains: string[];
+    hostmap: Map<string, string>;
 }
 export declare function newApp(opts: AppOptions): Application;
 export {};

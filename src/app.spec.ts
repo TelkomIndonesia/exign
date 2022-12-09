@@ -54,7 +54,8 @@ function newTestApp (): { app: Application, cleanup: () => void } {
   const { filepath: pub, cleanup: pubCleanup } = writeTmpFile(testKey.private)
 
   const app = newApp({
-    doubleDashParentDomains: ['domain.test'],
+    hostmap: new Map<string, string>(),
+    doubleDashDomains: ['domain.test'],
     clientBodyBufferSize: config.clientBodyBufferSize,
     signature: {
       keyfile: key,

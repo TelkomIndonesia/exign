@@ -2,11 +2,11 @@ import { resolveTxt } from 'dns/promises'
 import TTLCache from '@isaacs/ttlcache'
 
 const doubledash = '--'
-const doubleDashDomainDNSCache = new TTLCache({ ttl: 1000 * 60, max: 100 })
-const txtKey = 'double-dash-domain'
+const doubledashTXTKey = 'double-dash-domain'
+const dnsCache = new TTLCache({ ttl: 1000 * 60, max: 100 })
 
-export async function mapDoubleDashDomainDNS (hostname: string): Promise<string> {
-  const v: string = doubleDashDomainDNSCache.get(hostname)
+export async function mapDoubleDashHostnameDNS (hostname: string): Promise<string> {
+  const v: string = dnsCache.get(hostname)
   if (v !== undefined) {
     return v
   }
@@ -21,7 +21,7 @@ export async function mapDoubleDashDomainDNS (hostname: string): Promise<string>
   let domain = ''
   for (const records of txt) {
     for (let value of records) {
-      value = value.startsWith(txtKey + '=') ? value.substring(txtKey.length + 1) : ''
+      value = value.startsWith(doubledashTXTKey + '=') ? value.substring(doubledashTXTKey.length + 1) : ''
       if (!hostname.endsWith('.' + value) || value.length < domain.length) {
         continue
       }
@@ -30,36 +30,36 @@ export async function mapDoubleDashDomainDNS (hostname: string): Promise<string>
     }
   }
 
-  doubleDashDomainDNSCache.set(hostname, domain)
+  dnsCache.set(hostname, domain)
   return domain
 }
 
-export async function mapDoubleDashDomain (hostname: string, doubledashParentDomains: string[]): Promise<string | undefined> {
+export async function mapDoubleDashHostname (hostname: string, doubledashdomain: string[]): Promise<string | undefined> {
   if (hostname.indexOf(doubledash) < 0) {
     return
   }
 
-  let parentdomain = ''
-  for (const v of doubledashParentDomains) {
-    if (!hostname.endsWith('.' + v) || v.length < parentdomain.length) {
+  let domain = ''
+  for (const v of doubledashdomain) {
+    if (!hostname.endsWith('.' + v) || v.length < domain.length) {
       continue
     }
 
-    parentdomain = v
+    domain = v
   }
-  if (!parentdomain) {
-    parentdomain = await mapDoubleDashDomainDNS(hostname)
+  if (!domain) {
+    domain = await mapDoubleDashHostnameDNS(hostname)
   }
-  if (!parentdomain) {
+  if (!domain) {
     return
   }
 
   const part = hostname
-    .substring(0, hostname.indexOf('.' + parentdomain))
+    .substring(0, hostname.indexOf('.' + domain))
     .split(/--(?=[^-.])/)
   if (part.length === 0) {
     return
   }
 
-  return part[part.length - 1] + '.' + parentdomain
+  return part[part.length - 1] + '.' + domain
 }

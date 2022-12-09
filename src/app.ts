@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs'
 import express, { Application, Request, RequestHandler, Response } from 'express'
 import { sign, digest } from './signature'
-import { mapDoubleDashDomain } from './double-dash-domain'
+import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { ClientRequest, ServerResponse } from 'http'
 
@@ -27,7 +27,8 @@ interface AppOptions {
     pubkeyfile: string
   },
   clientBodyBufferSize: number
-  doubleDashParentDomains: string[]
+  doubleDashDomains: string[]
+  hostmap: Map<string, string>,
 }
 
 function newSignatureHandler (opts: AppOptions): RequestHandler {
@@ -43,7 +44,9 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
     const { digest: digestValue, data } = await digest(req, { bufferSize: opts.clientBodyBufferSize })
     res.on('close', () => data.destroy())
 
-    const targetHost = await mapDoubleDashDomain(req.hostname, opts.doubleDashParentDomains) || req.hostname
+    const targetHost = opts.hostmap.get(req.hostname) ||
+      await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) || req.hostname
+    console.log(targetHost, process.env.FRPROXY_PROXY_SECURE)
     proxy.web(req, res, {
       changeOrigin: false,
       target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
