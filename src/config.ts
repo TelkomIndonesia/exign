@@ -1,36 +1,17 @@
-import { readFileSync } from 'fs'
-
-function loadHostMap () {
-  const map = new Map<string, string>()
-
-  const path = process.env.FRPROXY_HOSTMAP_PATH
-  if (!path) {
-    return map
-  }
-
-  try {
-    const file = readFileSync(path, 'utf-8')
-    const doc = JSON.parse(file)
-    if (!doc.hostmap) {
-      return map
-    }
-
-    for (const [k, v] of Object.entries(doc.hostmap)) {
-      if (typeof (v) !== 'string') {
-        continue
-      }
-
-      map.set(k, v)
-    }
-  } catch (err) {}
-
-  return map
-}
-
 export const config = {
   clientBodyBufferSize: parseInt(process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '') || 8192,
-  hostmap: loadHostMap(),
+
+  hostmap: process.env.FRPROXY_HOSTMAP
+    ?.split(',')
+    .reduce((map, str) => {
+      const [host, targethost] = str.split(':')
+      map.set(host, targethost)
+      return map
+    }, new Map<string, string>()) ||
+    new Map<string, string>(),
   doubleDashDomains: process.env.FRPROXY_DOUBLEDASH_DOMAINS?.split(',') || [],
+  secure: (process.env.FRPROXY_PROXY_SECURE || 'true') === 'true',
+
   signature: {
     keyfile: process.env.FRPROXY_SIGNATURE_KEYFILE || './keys/signature/key.pem',
     pubkeyfile: process.env.FRPROXY_SIGNATURE_PUBKEYFILE || './keys/signature/pubkey.pem'

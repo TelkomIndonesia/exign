@@ -60,7 +60,8 @@ function newTestApp (): { app: Application, cleanup: () => void } {
     signature: {
       keyfile: key,
       pubkeyfile: pub
-    }
+    },
+    secure: true
   })
   const cleanup = function tempFilesCleanup () {
     keyCleanup()

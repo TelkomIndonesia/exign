@@ -29,6 +29,7 @@ interface AppOptions {
   clientBodyBufferSize: number
   doubleDashDomains: string[]
   hostmap: Map<string, string>,
+  secure: boolean
 }
 
 function newSignatureHandler (opts: AppOptions): RequestHandler {
@@ -46,11 +47,12 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
 
     const targetHost = opts.hostmap.get(req.hostname) ||
       await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) || req.hostname
-    console.log(targetHost, process.env.FRPROXY_PROXY_SECURE)
+
+    console.log(process.env.FRPROXY_HOSTMAP, opts.hostmap, targetHost)
     proxy.web(req, res, {
       changeOrigin: false,
       target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
-      secure: (process.env.FRPROXY_PROXY_SECURE || 'true') === 'true',
+      secure: opts.secure,
       buffer: data,
       headers: { digest: digestValue }
     })

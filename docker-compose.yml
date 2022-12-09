@@ -14,7 +14,7 @@ services:
       FRPROXY_TRANSPORT_CA_KEYFILE:
       FRPROXY_TRANSPORT_CA_CERTFILE:
       FRPROXY_PROXY_SECURE:
-      FRPROXY_HOSTMAP_PATH: 
+      FRPROXY_HOSTMAP: 
     dns:
       - 8.8.8.8
       - 8.8.4.4
