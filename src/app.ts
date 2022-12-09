@@ -48,7 +48,6 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
     const targetHost = opts.hostmap.get(req.hostname) ||
       await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) || req.hostname
 
-    console.log(process.env.FRPROXY_HOSTMAP, opts.hostmap, targetHost)
     proxy.web(req, res, {
       changeOrigin: false,
       target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,

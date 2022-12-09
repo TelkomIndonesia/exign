@@ -4,12 +4,12 @@ export const config = {
   hostmap: process.env.FRPROXY_HOSTMAP
     ?.split(',')
     .reduce((map, str) => {
-      const [host, targethost] = str.split(':')
+      const [host, targethost] = str.trim().split(':')
       map.set(host, targethost)
       return map
     }, new Map<string, string>()) ||
     new Map<string, string>(),
-  doubleDashDomains: process.env.FRPROXY_DOUBLEDASH_DOMAINS?.split(',') || [],
+  doubleDashDomains: process.env.FRPROXY_DOUBLEDASH_DOMAINS?.split(',').map(v => v.trim()) || [],
   secure: (process.env.FRPROXY_PROXY_SECURE || 'true') === 'true',
 
   signature: {
