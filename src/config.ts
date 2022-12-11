@@ -1,3 +1,7 @@
+import dotenv from 'dotenv'
+
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH })
+
 export const config = {
   clientBodyBufferSize: parseInt(process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '') || 8192,
 
