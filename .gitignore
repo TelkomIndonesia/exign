@@ -1,6 +1,6 @@
 .vscode
+config
 coverage
 node_modules
-keys
 .env
 docker-compose.override.yml

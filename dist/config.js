@@ -16,12 +16,12 @@ exports.config = {
     doubleDashDomains: ((_b = process.env.FRPROXY_DOUBLEDASH_DOMAINS) === null || _b === void 0 ? void 0 : _b.split(',').map(v => v.trim())) || [],
     secure: (process.env.FRPROXY_PROXY_SECURE || 'true') === 'true',
     signature: {
-        keyfile: process.env.FRPROXY_SIGNATURE_KEYFILE || './keys/signature/key.pem',
-        pubkeyfile: process.env.FRPROXY_SIGNATURE_PUBKEYFILE || './keys/signature/pubkey.pem'
+        keyfile: process.env.FRPROXY_SIGNATURE_KEYFILE || './config/signature/key.pem',
+        pubkeyfile: process.env.FRPROXY_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem'
     },
     transport: {
-        caKeyfile: process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './keys/transport/ca-key.pem',
-        caCertfile: process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './keys/transport/ca.crt'
+        caKeyfile: process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './config/frontend-transport/ca-key.pem',
+        caCertfile: process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './config/frontend-transport/ca.crt'
     }
 };
 //# sourceMappingURL=config.js.map

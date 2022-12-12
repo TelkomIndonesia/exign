@@ -1,9 +1,28 @@
 version: "3.9"
+
+x-script: &script
+  image: node:18
+  restart: on-failure
+  volumes:
+    - .:/usr/src/app
+  working_dir: /usr/src/app
+
 services:
+  remote-config: 
+    <<: *script
+    environment:
+      REMOTE_CONFIG_URL:
+    entrypoint: [./scripts/remote-config.sh]
+  keygen: 
+    <<: *script
+    entrypoint: [./scripts/keygen.sh]
+    
   frproxy:
     build: .
     restart: unless-stopped
     depends_on:
+      remote-config:
+        condition: service_completed_successfully
       keygen:
         condition: service_completed_successfully
     environment:
@@ -15,6 +34,9 @@ services:
       FRPROXY_TRANSPORT_CA_CERTFILE:
       FRPROXY_PROXY_SECURE:
       FRPROXY_HOSTMAP: 
+
+      DOTENV_CONFIG_PATH: /usr/src/app/config/.env
+      NODE_EXTRA_CA_CERTS: /usr/src/app/config/backend-transport/ca.crt
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -23,13 +45,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      - ./config:/usr/src/app/config
       - ./keys:/usr/src/app/keys
 
-  keygen:
-    image: node:18
-    restart: on-failure
-    volumes:
-      - .:/usr/src/app
-    working_dir: /usr/src/app
-    entrypoint: []
-    command: ./keygen.sh
+
