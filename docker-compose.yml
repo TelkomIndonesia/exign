@@ -16,7 +16,22 @@ services:
   keygen: 
     <<: *script
     entrypoint: [./scripts/keygen.sh]
-    
+
+  dnsmasq:
+    build:
+      dockerfile: Dockerfile.dnsmasq
+    restart: unless-stopped
+    volumes:
+      - ./config:/config
+    command:
+      - -k
+      - --log-facility=-
+      - --no-host
+      - --addn-hosts=/config/dnsmasq.hosts
+    ports:
+      - "53:53"
+      - "53:53/udp"
+
   frproxy:
     build: .
     restart: unless-stopped

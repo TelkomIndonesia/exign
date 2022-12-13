@@ -9,7 +9,7 @@ if [ -z "$REMOTE_CONFIG_URL" ]; then
     exit 0
 fi
 
-declare -a files=(".env" "backend-transport/ca.crt")
+declare -a files=(".env" "dnsmasq.hosts" "backend-transport/ca.crt")
 for file in "${files[@]}"; do
     url="$REMOTE_CONFIG_URL/$file"
     filename="$OUTPUT_DIR/$file"
