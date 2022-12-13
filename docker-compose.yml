@@ -13,6 +13,7 @@ services:
     environment:
       REMOTE_CONFIG_URL:
     entrypoint: [./scripts/remote-config.sh]
+  
   keygen: 
     <<: *script
     entrypoint: [./scripts/keygen.sh]
@@ -21,6 +22,9 @@ services:
     build:
       dockerfile: Dockerfile.dnsmasq
     restart: unless-stopped
+    depends_on:
+      remote-config:
+        condition: service_completed_successfully
     volumes:
       - ./config:/config
     command:
