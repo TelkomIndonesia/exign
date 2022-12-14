@@ -8,6 +8,7 @@ const node_forge_1 = require("node-forge");
 const app_1 = require("./app");
 const certificate_1 = require("./certificate");
 const config_1 = require("./config");
+require('express-async-errors');
 const app = (0, app_1.newApp)(config_1.config);
 const { key: caKey, cert: caCert } = (0, certificate_1.loadCertPairSync)(config_1.config.transport.caKeyfile, config_1.config.transport.caCertfile);
 const { key: localhostKey, cert: localhostCert } = (0, certificate_1.createCertPair)('localhost', { caKey, caCert });

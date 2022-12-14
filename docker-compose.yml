@@ -65,6 +65,5 @@ services:
       - "443:443"
     volumes:
       - ./config:/usr/src/app/config
-      - ./keys:/usr/src/app/keys
 
 

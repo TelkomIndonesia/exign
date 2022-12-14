@@ -5,6 +5,7 @@ import { pki } from 'node-forge'
 import { newApp } from './app'
 import { createCertPair, loadCertPairSync } from './certificate'
 import { config } from './config'
+require('express-async-errors')
 
 const app = newApp(config)
 const { key: caKey, cert: caCert } = loadCertPairSync(config.transport.caKeyfile, config.transport.caCertfile)
