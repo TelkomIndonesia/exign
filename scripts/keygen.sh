@@ -17,7 +17,7 @@ if [ ! -f "${KEY_TRANSPORT_CA_PRIVATE}" ] || [ ! -f "${KEY_TRANSPORT_CA_CERTIFIC
     openssl req -new -x509 -nodes -days 365000 \
         -key "${KEY_TRANSPORT_CA_PRIVATE}" \
         -out "${KEY_TRANSPORT_CA_CERTIFICATE}" \
-        -subj "/CN=httpsig-frproxy/OU=Group/O=Corp/L=Bandung/ST=West Java/C=ID"
+        -subj "/CN=httpsig-frproxy.ca/OU=httpsig-frproxy/O=httpsig-frproxy/L=Bandung/ST=West Java/C=ID"
     
     echo "[INFO] Frontend-transport keys generated" 
 else

@@ -27,10 +27,10 @@ function createCertPair(domain, opts) {
     const attrs = [
         { name: 'commonName', value: domain },
         { name: 'countryName', value: 'ID' },
-        { shortName: 'ST', value: 'Jakarta' },
-        { name: 'localityName', value: 'Jakarta' },
-        { name: 'organizationName', value: 'HTTPSig MProxy' },
-        { shortName: 'OU', value: 'HTTPSig MProxy' }
+        { shortName: 'ST', value: 'West Java' },
+        { name: 'localityName', value: 'Bandung' },
+        { name: 'organizationName', value: 'httpsig-frproxy' },
+        { shortName: 'OU', value: 'httpsig-frproxy' }
     ];
     cert.setSubject(attrs);
     cert.setExtensions([
