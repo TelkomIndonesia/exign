@@ -14,7 +14,7 @@ mkdir -p "${KEYS_TRANSPORT_DIR}" "${KEYS_SIGNATURE_DIR}"
 
 if [ ! -f "${KEY_TRANSPORT_CA_PRIVATE}" ] || [ ! -f "${KEY_TRANSPORT_CA_CERTIFICATE}" ]; then
     openssl genrsa 2048 >"${KEY_TRANSPORT_CA_PRIVATE}"
-    openssl req -new -x509 -nodes -days 365000 \
+    openssl req -new -x509 -nodes -days 3650 \
         -key "${KEY_TRANSPORT_CA_PRIVATE}" \
         -out "${KEY_TRANSPORT_CA_CERTIFICATE}" \
         -subj "/CN=httpsig-frproxy.ca/OU=httpsig-frproxy/O=httpsig-frproxy/L=Bandung/ST=West Java/C=ID"
