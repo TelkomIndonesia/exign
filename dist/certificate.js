@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCertPair = exports.loadCertPairSync = void 0;
 const fs_1 = require("fs");
 const node_forge_1 = require("node-forge");
+const crypto_1 = require("crypto");
 function loadCertPairSync(keyfile, certfile) {
     const keyPem = (0, fs_1.readFileSync)(keyfile, 'utf8');
     const certPem = (0, fs_1.readFileSync)(certfile, 'utf8');
@@ -13,6 +14,7 @@ function loadCertPairSync(keyfile, certfile) {
 exports.loadCertPairSync = loadCertPairSync;
 const certificateCache = new Map();
 function createCertPair(domain, opts) {
+    var _a;
     let pair = certificateCache.get(domain);
     if (pair) {
         return pair;
@@ -20,7 +22,7 @@ function createCertPair(domain, opts) {
     const keys = node_forge_1.pki.rsa.generateKeyPair(2048);
     const cert = node_forge_1.pki.createCertificate();
     cert.publicKey = keys.publicKey;
-    cert.serialNumber = '01';
+    cert.serialNumber = ((_a = (0, crypto_1.randomBytes)(20).toString('hex').match(/.{1,2}/g)) === null || _a === void 0 ? void 0 : _a.join(':')) || '01';
     cert.validity.notBefore = new Date();
     cert.validity.notAfter = new Date();
     cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);

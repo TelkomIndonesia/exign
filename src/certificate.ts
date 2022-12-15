@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs'
 import { pki, md } from 'node-forge'
+import { randomBytes } from 'crypto'
 
 interface CertPair {
     key: pki.PrivateKey;
@@ -28,7 +29,7 @@ export function createCertPair (domain: string, opts: createCertOptions): CertPa
   const keys = pki.rsa.generateKeyPair(2048)
   const cert = pki.createCertificate()
   cert.publicKey = keys.publicKey
-  cert.serialNumber = '01'
+  cert.serialNumber = randomBytes(20).toString('hex').match(/.{1,2}/g)?.join(':') || '01'
   cert.validity.notBefore = new Date()
   cert.validity.notAfter = new Date()
   cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1)
