@@ -27,11 +27,16 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./config:/config
-    command:
+    entrypoint:
+      - dnsmasq
       - -k
       - --log-facility=-
       - --no-host
       - --addn-hosts=/config/dnsmasq.hosts
+    command:
+      - --server=8.8.8.8
+      - --server=8.8.4.4
+      - --server=1.1.1.1
     ports:
       - "53:53"
       - "53:53/udp"

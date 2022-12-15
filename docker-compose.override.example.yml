@@ -1,0 +1,12 @@
+services:
+  dnsmasq:
+    command: 
+      # Use OpenDNS as resolver
+      - --server=208.67.222.222
+      - --server=208.67.220.220
+
+  frproxy:
+    volumes:
+      # Use existing trusted CA
+      - $HOME/Library/Application Support/mkcert/rootCA.pem:/usr/src/app/config/frontend-transport/ca.crt
+      - $HOME/Library/Application Support/mkcert/rootCA-key.pem:/usr/src/app/config/frontend-transport/ca-key.pem
