@@ -32,7 +32,7 @@ services:
       - -k
       - --log-facility=-
       - --no-host
-      - --addn-hosts=/config/dnsmasq.hosts
+      - --addn-hosts=/config/hosts
     command:
       - --server=8.8.8.8
       - --server=8.8.4.4
