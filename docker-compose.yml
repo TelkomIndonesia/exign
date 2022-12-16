@@ -1,45 +1,87 @@
 version: "3.9"
 
-x-script: &script
+volumes:
+  ip:
+
+
+x-script:
+  &script
   image: node:18
   restart: on-failure
   volumes:
     - .:/usr/src/app
   working_dir: /usr/src/app
 
+x-dnsmasq:
+  &dnsmasq
+  build:
+    dockerfile: Dockerfile.dnsmasq
+  restart: unless-stopped
+  volumes:
+    - ./config:/config
+  entrypoint:
+    - dnsmasq
+    - -k
+    - --log-facility=-
+    - --no-host
+    - --addn-hosts=/config/hosts
+
 services:
-  remote-config: 
+  remote-config:
     <<: *script
     environment:
       REMOTE_CONFIG_URL:
-    entrypoint: [./scripts/remote-config.sh]
-  
-  keygen: 
+    entrypoint: [ ./scripts/remote-config.sh ]
+
+  keygen:
     <<: *script
-    entrypoint: [./scripts/keygen.sh]
+    entrypoint: [ ./scripts/keygen.sh ]
 
   dnsmasq:
-    build:
-      dockerfile: Dockerfile.dnsmasq
-    restart: unless-stopped
+    <<: *dnsmasq
     depends_on:
       remote-config:
         condition: service_completed_successfully
-    volumes:
-      - ./config:/config
-    entrypoint:
-      - dnsmasq
-      - -k
-      - --log-facility=-
-      - --no-host
-      - --addn-hosts=/config/hosts
     command:
       - --server=8.8.8.8
       - --server=8.8.4.4
       - --server=1.1.1.1
     ports:
       - "53:53"
-      - "53:53/udp"
+      - 53:53/udp
+
+  host-resolve:
+    image: busybox
+    extra_hosts: [ host.docker.internal:host-gateway ]
+    volumes: 
+      - ./scripts/host-resolve.sh:/host-resolve.sh
+      - ip:/ip
+    entrypoint: [ /host-resolve.sh ]
+
+  socks5-dns:
+    <<: *dnsmasq
+    depends_on:  
+      host-resolve:
+        condition: service_completed_successfully
+    network_mode: service:socks5
+    volumes: [ ip:/ip ]
+    entrypoint: [ sh, -c ]
+    command:
+      - |
+        dnsmasq -k \
+          --log-facility=- \
+          --no-host \
+          --server=$$(cat /ip/host.docker.internal) \
+          --alias=127.0.0.1,$$(cat /ip/host.docker.internal)
+
+  socks5:
+    image: serjs/go-socks5-proxy
+    restart: unless-stopped
+    dns: 127.0.0.1
+    environment:
+      PROXY_PORT: 1080
+    ports:
+      - 1080:1080
 
   frproxy:
     build: .
@@ -57,7 +99,7 @@ services:
       FRPROXY_TRANSPORT_CA_KEYFILE:
       FRPROXY_TRANSPORT_CA_CERTFILE:
       FRPROXY_PROXY_SECURE:
-      FRPROXY_HOSTMAP: 
+      FRPROXY_HOSTMAP:
 
       DOTENV_CONFIG_PATH: /usr/src/app/config/.env
       NODE_EXTRA_CA_CERTS: /usr/src/app/config/backend-transport/ca.crt
@@ -70,5 +112,3 @@ services:
       - "443:443"
     volumes:
       - ./config:/usr/src/app/config
-
-
