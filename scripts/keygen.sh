@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 KEYS_PARENT_DIR="config"
 KEYS_TRANSPORT_DIR="${KEYS_PARENT_DIR}/frontend-transport"
 KEYS_SIGNATURE_DIR="${KEYS_PARENT_DIR}/signature"
@@ -14,8 +16,8 @@ mkdir -p "${KEYS_TRANSPORT_DIR}" "${KEYS_SIGNATURE_DIR}"
 
 if [ ! -f "${KEY_TRANSPORT_CA_PRIVATE}" ] || [ ! -f "${KEY_TRANSPORT_CA_CERTIFICATE}" ]; then
     openssl genrsa 2048 >"${KEY_TRANSPORT_CA_PRIVATE}"
-    openssl req -new -x509 -nodes -days 3650 \
-        -key "${KEY_TRANSPORT_CA_PRIVATE}" \
+    openssl req -x509 -days 365 -nodes -newkey rsa:2048 -extensions v3_ca -config "$SCRIPT_DIR/openssl.cnf" \
+        -keyout "${KEY_TRANSPORT_CA_PRIVATE}" \
         -out "${KEY_TRANSPORT_CA_CERTIFICATE}" \
         -subj "/CN=httpsig-frproxy.ca/OU=httpsig-frproxy/O=httpsig-frproxy/L=Bandung/ST=West Java/C=ID"
     
