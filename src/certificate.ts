@@ -46,7 +46,7 @@ export function createCertPair (domain: string, opts: createCertOptions): CertPa
     { name: 'basicConstraints', cA: false },
     {
       name: 'keyUsage',
-      keyCertSign: true,
+      critical: true,
       digitalSignature: true,
       nonRepudiation: true,
       keyEncipherment: true,

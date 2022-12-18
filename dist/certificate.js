@@ -39,7 +39,7 @@ function createCertPair(domain, opts) {
         { name: 'basicConstraints', cA: false },
         {
             name: 'keyUsage',
-            keyCertSign: true,
+            critical: true,
             digitalSignature: true,
             nonRepudiation: true,
             keyEncipherment: true,
