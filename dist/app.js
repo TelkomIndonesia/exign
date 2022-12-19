@@ -35,6 +35,9 @@ function newSignatureHandler(opts) {
     const pubKey = (0, fs_1.readFileSync)(opts.signature.pubkeyfile, 'utf8');
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq, _, res) {
+        if (proxyReq.getHeader('content-length') === '0') {
+            proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
+        }
         log(proxyReq, res);
         (0, signature_1.sign)(proxyReq, { key, pubKey });
     });

@@ -46,6 +46,10 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
   const pubKey = readFileSync(opts.signature.pubkeyfile, 'utf8')
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq, _, res) {
+      if (proxyReq.getHeader('content-length') === '0') {
+        proxyReq.removeHeader('content-length') // some reverse proxy drop 'content-length' when it is zero
+      }
+
       log(proxyReq, res)
       sign(proxyReq, { key, pubKey })
     })

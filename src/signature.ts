@@ -77,7 +77,9 @@ interface SignOptions {
 }
 export function sign (req: ClientRequest, opts: SignOptions) {
   const addParam = ['(request-target)']
-  if (!req.hasHeader('date')) addParam.push('date') // the header will be added by the library
+  if (!req.hasHeader('date')) {
+    addParam.push('date') // the header will be added by the library
+  }
 
   httpSignature.sign(req, {
     key: opts.key,

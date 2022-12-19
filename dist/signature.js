@@ -81,8 +81,9 @@ function keyFingerprint(key) {
 }
 function sign(req, opts) {
     const addParam = ['(request-target)'];
-    if (!req.hasHeader('date'))
+    if (!req.hasHeader('date')) {
         addParam.push('date'); // the header will be added by the library
+    }
     http_signature_1.default.sign(req, {
         key: opts.key,
         keyId: opts.keyId || (opts.pubKey ? keyFingerprint(opts.pubKey) : ''),
