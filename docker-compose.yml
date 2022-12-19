@@ -52,11 +52,13 @@ services:
 
   host-resolve:
     image: busybox
-    extra_hosts: [ host.docker.internal:host-gateway ]
+    depends_on: 
+      - frproxy
+      - dnsmasq
     volumes: 
       - ./scripts/host-resolve.sh:/host-resolve.sh
       - ip:/ip
-    entrypoint: [ /host-resolve.sh ]
+    entrypoint: [ /host-resolve.sh, frproxy, dnsmasq]
 
   socks5-dns:
     <<: *dnsmasq
@@ -71,8 +73,8 @@ services:
         dnsmasq -k \
           --log-facility=- \
           --no-host \
-          --server=$$(cat /ip/host.docker.internal) \
-          --alias=127.0.0.1,$$(cat /ip/host.docker.internal)
+          --server=$$(cat /ip/dnsmasq) \
+          --alias=127.0.0.1,$$(cat /ip/frproxy)
 
   socks5:
     image: serjs/go-socks5-proxy
