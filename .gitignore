@@ -3,4 +3,4 @@ config
 coverage
 node_modules
 .env
-docker-compose.override.yml
+docker-compose.*.yml
