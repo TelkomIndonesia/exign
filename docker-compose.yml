@@ -79,8 +79,6 @@ services:
 
   socks5:
     image: serjs/go-socks5-proxy
-    depends_on:
-      - socks5-dns
     restart: unless-stopped
     dns: 127.0.0.1
     environment:
