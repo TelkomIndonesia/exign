@@ -6,7 +6,7 @@ volumes:
 
 x-script:
   &script
-  image: node:18
+  build: .
   restart: on-failure
   volumes:
     - .:/usr/src/app
@@ -14,8 +14,7 @@ x-script:
 
 x-dnsmasq:
   &dnsmasq
-  build:
-    dockerfile: Dockerfile.dnsmasq
+  build: .
   restart: unless-stopped
   volumes:
     - ./config:/config
@@ -27,16 +26,17 @@ x-dnsmasq:
     - --addn-hosts=/config/hosts
 
 services:
+  keygen:
+    <<: *script
+    entrypoint: [ ./scripts/keygen.sh ]
+
   remote-config:
     <<: *script
+    depends_on: [keygen]
     environment:
       REMOTE_CONFIG_URL:
       REMOTE_CONFIG_USE_FRPROXY:
     entrypoint: [ ./scripts/remote-config.sh ]
-
-  keygen:
-    <<: *script
-    entrypoint: [ ./scripts/keygen.sh ]
 
   dnsmasq:
     <<: *dnsmasq
@@ -52,18 +52,18 @@ services:
       - 53:53/udp
 
   host-resolve:
-    image: busybox
-    depends_on: 
+    build: .
+    depends_on:
       - frproxy
       - dnsmasq
-    volumes: 
+    volumes:
       - ./scripts/host-resolve.sh:/host-resolve.sh
       - ip:/ip
-    entrypoint: [ /host-resolve.sh, frproxy, dnsmasq]
+    entrypoint: [ /host-resolve.sh, frproxy, dnsmasq ]
 
   socks5-dns:
     <<: *dnsmasq
-    depends_on:  
+    depends_on:
       host-resolve:
         condition: service_completed_successfully
     network_mode: service:socks5
@@ -79,6 +79,8 @@ services:
 
   socks5:
     image: serjs/go-socks5-proxy
+    depends_on:
+      - socks5-dns
     restart: unless-stopped
     dns: 127.0.0.1
     environment:
