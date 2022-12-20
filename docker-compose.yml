@@ -31,7 +31,7 @@ services:
     <<: *script
     environment:
       REMOTE_CONFIG_URL:
-      REMOTE_CONFIG_USE_FRPROXY: "true"
+      REMOTE_CONFIG_USE_FRPROXY:
     entrypoint: [ ./scripts/remote-config.sh ]
 
   keygen:
