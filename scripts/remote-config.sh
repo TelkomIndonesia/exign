@@ -20,10 +20,9 @@ if [ "${REMOTE_CONFIG_USE_FRPROXY}" == "true" ]; then
     trap "kill $SERVER_PID" EXIT
 
     until curl \
-            -sf "$REMOTE_CONFIG_URL" \
-            --insecure --resolve "$(get-ip-port "$REMOTE_CONFIG_URL"):127.0.0.1" \
-            >/dev/null
-    do
+        -sf "$REMOTE_CONFIG_URL" \
+        --insecure --resolve "$(get-ip-port "$REMOTE_CONFIG_URL"):127.0.0.1" \
+        >/dev/null; do
         sleep 5
         echo "[INFO] waiting"
     done

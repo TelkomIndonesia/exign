@@ -32,7 +32,7 @@ services:
 
   remote-config:
     <<: *script
-    depends_on: [keygen]
+    depends_on: [ keygen ]
     environment:
       REMOTE_CONFIG_URL:
       REMOTE_CONFIG_USE_FRPROXY:
@@ -59,7 +59,8 @@ services:
     volumes:
       - ./scripts/host-resolve.sh:/host-resolve.sh
       - ip:/ip
-    entrypoint: [ /host-resolve.sh, frproxy, dnsmasq ]
+    entrypoint: [ /host-resolve.sh ]
+    command: frproxy dnsmasq
 
   socks5-dns:
     <<: *dnsmasq
