@@ -10,15 +10,25 @@ if [ -z "$REMOTE_CONFIG_URL" ]; then
     exit 0
 fi
 
+function get-ip-port {
+    curl -vs "$1" 2>&1 | grep 'Connected to ' | awk '{print $4":"$7}'
+}
+
 if [ "${REMOTE_CONFIG_USE_FRPROXY}" == "true" ]; then
     npm run server &
     SERVER_PID=$!
     trap "kill $SERVER_PID" EXIT
-    until curl -sf ifconfig.me --resolve 'ifconfig.me:80:127.0.0.1' >/dev/null; do
-        sleep 1
+
+    until curl \
+            -sf "$REMOTE_CONFIG_URL" \
+            --insecure --resolve "$(get-ip-port "$REMOTE_CONFIG_URL"):127.0.0.1" \
+            >/dev/null
+    do
+        sleep 5
         echo "[INFO] waiting"
     done
-    echo "[INFO] frproxy started"
+
+    echo "[INFO] ready to use frproxy"
 fi
 
 declare -a files=(".env" "hosts" "backend-transport/ca.crt")
@@ -35,7 +45,7 @@ for file in "${files[@]}"; do
         "$url" \
         --write-out "%{http_code}" \
         $(if [ "${REMOTE_CONFIG_USE_FRPROXY}" == "true" ]; then
-            echo --insecure --resolve "$(curl -vs "$url" 2>&1 | grep 'Connected to ' | awk '{print $4":"$7}'):127.0.0.1"
+            echo --insecure --resolve "$(get-ip-port "$url"):127.0.0.1"
         fi) |
         grep -E -w '200|404' >/dev/null
 done
