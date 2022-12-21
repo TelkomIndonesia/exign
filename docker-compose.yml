@@ -9,7 +9,7 @@ x-script:
   build: .
   restart: on-failure
   volumes:
-    - .:/usr/src/app
+    - ./config:/usr/src/app/config
   working_dir: /usr/src/app
 
 x-dnsmasq:
@@ -17,13 +17,13 @@ x-dnsmasq:
   build: .
   restart: unless-stopped
   volumes:
-    - ./config:/config
+    - ./config:/usr/src/app/config
   entrypoint:
     - dnsmasq
     - -k
     - --log-facility=-
     - --no-host
-    - --addn-hosts=/config/hosts
+    - --addn-hosts=/usr/src/app/config/hosts
 
 services:
   keygen:
@@ -52,14 +52,13 @@ services:
       - 53:53/udp
 
   host-resolve:
-    build: .
+    <<: *script
     depends_on:
       - frproxy
       - dnsmasq
     volumes:
-      - ./scripts/host-resolve.sh:/host-resolve.sh
       - ip:/ip
-    entrypoint: [ /host-resolve.sh ]
+    entrypoint: [ ./scripts/host-resolve.sh ]
     command: frproxy dnsmasq
 
   socks5-dns:

@@ -1,6 +1,5 @@
 .git
 node_modules
-scripts
 .dockerignore
 .env
 .gitignore
