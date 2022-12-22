@@ -3,10 +3,14 @@ version: "3.9"
 volumes:
   ip:
 
+x-image:
+  &image
+  build: .
+  image: httpsig-frproxy:0.1.0
 
 x-script:
   &script
-  build: .
+  <<: *image
   restart: on-failure
   volumes:
     - ./config:/usr/src/app/config
@@ -14,7 +18,7 @@ x-script:
 
 x-dnsmasq:
   &dnsmasq
-  build: .
+  <<: *image
   restart: unless-stopped
   volumes:
     - ./config:/usr/src/app/config
@@ -87,7 +91,7 @@ services:
       - 1080:1080
 
   frproxy:
-    build: .
+    <<: *image
     restart: unless-stopped
     depends_on:
       remote-config:
