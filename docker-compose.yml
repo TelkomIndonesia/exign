@@ -27,6 +27,7 @@ x-dnsmasq:
     - -k
     - --log-facility=-
     - --no-host
+    - --no-resolv
     - --addn-hosts=/usr/src/app/config/hosts
 
 services:
@@ -78,6 +79,7 @@ services:
         dnsmasq -k \
           --log-facility=- \
           --no-host \
+          --no-resolv \
           --server=$$(cat /ip/dnsmasq) \
           --alias=127.0.0.1,$$(cat /ip/frproxy)
 
