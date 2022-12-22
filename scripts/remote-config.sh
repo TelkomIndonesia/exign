@@ -24,10 +24,10 @@ if [ "${REMOTE_CONFIG_USE_FRPROXY}" == "true" ]; then
         --insecure --resolve "$(get-ip-port "$REMOTE_CONFIG_URL"):127.0.0.1" \
         >/dev/null; do
         sleep 5
-        echo "[INFO] waiting"
+        echo "[WARN] Make sure your public key has been whitelisted at the remote server. Retrying..."
     done
 
-    echo "[INFO] ready to use frproxy"
+    echo "[INFO] Connection success! frproxy is ready for downloading remote-config."
 fi
 
 declare -a files=(".env" "hosts" "backend-transport/ca.crt")
