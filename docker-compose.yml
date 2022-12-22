@@ -7,7 +7,7 @@ volumes:
 x-image:
   &image
   build: .
-  image: httpsig-frproxy:0.1.0
+  image: httpsig-frproxy:0.2.0
 
 x-script:
   &script
