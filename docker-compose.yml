@@ -3,6 +3,7 @@ version: "3.9"
 volumes:
   ip:
 
+
 x-image:
   &image
   build: .
@@ -121,3 +122,11 @@ services:
       - "443:443"
     volumes:
       - ./config:/usr/src/app/config
+
+  connection-test:
+    <<: *script
+    depends_on: [ frproxy ]
+    network_mode: service:socks5
+    environment:
+      SOCKS5_PROXY_ENDPOINT: localhost:1080
+    entrypoint: [ ./scripts/connection-test.sh ]

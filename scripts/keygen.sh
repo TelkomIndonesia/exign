@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 KEYS_PARENT_DIR="config"
 KEYS_TRANSPORT_DIR="${KEYS_PARENT_DIR}/frontend-transport"
@@ -20,8 +20,8 @@ if [ ! -f "${KEY_TRANSPORT_CA_PRIVATE}" ] || [ ! -f "${KEY_TRANSPORT_CA_CERTIFIC
         -key "${KEY_TRANSPORT_CA_PRIVATE}" \
         -out "${KEY_TRANSPORT_CA_CERTIFICATE}" \
         -subj "/CN=httpsig-frproxy.ca/OU=httpsig-frproxy/O=httpsig-frproxy/L=Bandung/ST=West Java/C=ID"
-    
-    echo "[INFO] Frontend-transport keys generated" 
+
+    echo "[INFO] Frontend-transport keys generated"
 else
     echo "[INFO] Frontend-transport keys exist."
 fi
@@ -30,7 +30,7 @@ if [ ! -f "${KEY_SIGNATURE_PRIVATE}" ] || [ ! -f "${KEY_SIGNATURE_PUBLIC}" ]; th
     openssl ecparam -genkey -name prime256v1 -noout -out "${KEY_SIGNATURE_PRIVATE}"
     openssl ec -in "${KEY_SIGNATURE_PRIVATE}" -pubout -out "${KEY_SIGNATURE_PUBLIC}"
 
-    echo "[INFO] Signature keys generated" 
+    echo "[INFO] Signature keys generated"
 else
     echo "[INFO] Signature keys exist."
 fi
