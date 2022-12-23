@@ -3,7 +3,7 @@ import express, { Application, NextFunction, Request, RequestHandler, Response }
 import { sign, digest } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
-import { ClientRequest, ServerResponse } from 'http'
+import { ClientRequest } from 'http'
 require('express-async-errors')
 
 function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
@@ -14,18 +14,21 @@ function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
   next(err)
 }
 
-function log (req: ClientRequest, res: ServerResponse) {
-  res.on('close', function log () {
-    console.log({
-      request: {
-        method: req.method,
-        url: `${req.protocol}//${req.host}${req.path}`,
-        headers: req.getHeaders()
-      },
-      response: {
-        status: res.statusCode,
-        headers: res.getHeaders()
-      }
+function log (req: ClientRequest) {
+  req.on('response', (res) => {
+    res.on('close', function log () {
+      console.log({
+        request: {
+          method: req.method,
+          url: `${req.protocol}//${req.host}${req.path}`,
+          headers: req.getHeaders()
+        },
+        response: {
+          status: res.statusCode,
+          headers: res.headers,
+          trailers: res.trailers
+        }
+      })
     })
   })
 }
@@ -45,12 +48,12 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
   const key = readFileSync(opts.signature.keyfile, 'utf8')
   const pubKey = readFileSync(opts.signature.pubkeyfile, 'utf8')
   const proxy = createProxyServer({ ws: true })
-    .on('proxyReq', function onProxyReq (proxyReq, _, res) {
+    .on('proxyReq', function onProxyReq (proxyReq) {
       if (proxyReq.getHeader('content-length') === '0') {
         proxyReq.removeHeader('content-length') // some reverse proxy drop 'content-length' when it is zero
       }
 
-      log(proxyReq, res)
+      log(proxyReq)
       sign(proxyReq, { key, pubKey })
     })
 
