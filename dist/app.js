@@ -15,18 +15,21 @@ function errorMW(err, _, res, next) {
     }
     next(err);
 }
-function log(req, res) {
-    res.on('close', function log() {
-        console.log({
-            request: {
-                method: req.method,
-                url: `${req.protocol}//${req.host}${req.path}`,
-                headers: req.getHeaders()
-            },
-            response: {
-                status: res.statusCode,
-                headers: res.getHeaders()
-            }
+function log(req) {
+    req.on('response', (res) => {
+        res.on('close', function log() {
+            console.log({
+                request: {
+                    method: req.method,
+                    url: `${req.protocol}//${req.host}${req.path}`,
+                    headers: req.getHeaders()
+                },
+                response: {
+                    status: res.statusCode,
+                    headers: res.headers,
+                    trailers: res.trailers
+                }
+            });
         });
     });
 }
@@ -34,11 +37,11 @@ function newSignatureHandler(opts) {
     const key = (0, fs_1.readFileSync)(opts.signature.keyfile, 'utf8');
     const pubKey = (0, fs_1.readFileSync)(opts.signature.pubkeyfile, 'utf8');
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
-        .on('proxyReq', function onProxyReq(proxyReq, _, res) {
+        .on('proxyReq', function onProxyReq(proxyReq) {
         if (proxyReq.getHeader('content-length') === '0') {
             proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
         }
-        log(proxyReq, res);
+        log(proxyReq);
         (0, signature_1.sign)(proxyReq, { key, pubKey });
     });
     return function signatureHandler(req, res, next) {
