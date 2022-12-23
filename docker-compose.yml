@@ -1,9 +1,3 @@
-version: "3.9"
-
-volumes:
-  ip:
-
-
 x-image:
   &image
   build: .
@@ -14,92 +8,38 @@ x-script:
   <<: *image
   restart: on-failure
   volumes:
-    - ./config:/usr/src/app/config
-  working_dir: /usr/src/app
+    - ./config:/src/config
 
 x-dnsmasq:
   &dnsmasq
   <<: *image
   restart: unless-stopped
   volumes:
-    - ./config:/usr/src/app/config
+    - ./config:/src/config
   entrypoint:
     - dnsmasq
     - -k
     - --log-facility=-
     - --no-host
     - --no-resolv
-    - --addn-hosts=/usr/src/app/config/hosts
+    - --addn-hosts=/src/config/hosts
 
+version: "3.9"
 services:
-  keygen:
+  init:
     <<: *script
-    entrypoint: [ ./scripts/keygen.sh ]
-
-  remote-config:
-    <<: *script
-    depends_on: [ keygen ]
+    entrypoint: [ sh, -c ]
     environment:
       REMOTE_CONFIG_URL:
       REMOTE_CONFIG_USE_FRPROXY:
-    entrypoint: [ ./scripts/remote-config.sh ]
-
-  dnsmasq:
-    <<: *dnsmasq
-    depends_on:
-      remote-config:
-        condition: service_completed_successfully
     command:
-      - --server=8.8.8.8
-      - --server=8.8.4.4
-      - --server=1.1.1.1
-    ports:
-      - "53:53"
-      - 53:53/udp
-
-  host-resolve:
-    <<: *script
-    depends_on:
-      - frproxy
-      - dnsmasq
-    volumes:
-      - ip:/ip
-    entrypoint: [ ./scripts/host-resolve.sh ]
-    command: frproxy dnsmasq
-
-  socks5-dns:
-    <<: *dnsmasq
-    depends_on:
-      host-resolve:
-        condition: service_completed_successfully
-    network_mode: service:socks5
-    volumes: [ ip:/ip ]
-    entrypoint: [ sh, -c ]
-    command:
-      - |
-        dnsmasq -k \
-          --log-facility=- \
-          --no-host \
-          --no-resolv \
-          --server=$$(cat /ip/dnsmasq) \
-          --alias=127.0.0.1,$$(cat /ip/frproxy)
-
-  socks5:
-    image: serjs/go-socks5-proxy
-    restart: unless-stopped
-    dns: 127.0.0.1
-    environment:
-      PROXY_PORT: 1080
-    ports:
-      - 1080:1080
+      - ./scripts/keygen.sh && ./scripts/remote-config.sh
 
   frproxy:
     <<: *image
     restart: unless-stopped
     depends_on:
-      remote-config:
-        condition: service_completed_successfully
-      keygen:
+      init:
         condition: service_completed_successfully
     environment:
       FRPROXY_CLIENT_BODY_BUFFER_SIZE:
@@ -111,8 +51,8 @@ services:
       FRPROXY_PROXY_SECURE:
       FRPROXY_HOSTMAP:
 
-      DOTENV_CONFIG_PATH: /usr/src/app/config/.env
-      NODE_EXTRA_CA_CERTS: /usr/src/app/config/backend-transport/ca.crt
+      DOTENV_CONFIG_PATH: /src/config/.env
+      NODE_EXTRA_CA_CERTS: /src/config/backend-transport/ca.crt
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -121,12 +61,48 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./config:/usr/src/app/config
+      - ./config:/src/config
+
+  dnsmasq:
+    <<: *image
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    ports:
+      - "53:53"
+      - 53:53/udp
+    volumes:
+      - ./config:/src/config
+    entrypoint:
+      - dnsmasq
+      - -k
+      - --log-facility=-
+      - --no-host
+      - --no-resolv
+      - --addn-hosts=/src/config/hosts
+    command:
+      - --server=8.8.8.8
+      - --server=8.8.4.4
+      - --server=1.1.1.1
+
+  socks5:
+    <<: *image
+    restart: unless-stopped
+    depends_on:
+      - frproxy
+    environment:
+      PROXY_PORT: 1080
+    ports:
+      - 1080:1080
+    volumes:
+      - ./config:/src/config
+    entrypoint: [ ./scripts/append-hosts.sh, socks5 ]
 
   connection-test:
     <<: *script
     depends_on: [ frproxy ]
     network_mode: service:socks5
     environment:
-      SOCKS5_PROXY_ENDPOINT: localhost:1080
+      SOCKS5_PROXY_ENDPOINT: socks5:1080
     entrypoint: [ ./scripts/connection-test.sh ]
