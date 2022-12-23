@@ -1,7 +1,15 @@
 .git
+.github
+.vscode
+config
+coverage
+dist
 node_modules
 .dockerignore
 .env
+.gitattributes
 .gitignore
 docker-compose.*
 Dockerfile*
+jest.config.js
+README.md

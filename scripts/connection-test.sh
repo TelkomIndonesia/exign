@@ -9,7 +9,7 @@ if [ -f "./config/hosts" ]; then
 fi
 
 until curl -ksfL "$TARGET_HOST" >/dev/null; do
-    echo "[WARN] Connection test fail using dnsmasq resolver. Retrying..."
+    echo "[WARN] Connection test fail. Retrying..."
     sleep 1
 done
 
