@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SOCKS5_PROXY_ENDPOINT="${SOCKS5_PROXY_ENDPOINT:-""}"
-TARGET_HOST="${1:-"https://icanhazip.com"}"
+TARGET_HOST="${TARGET_HOST:-"https://icanhazip.com"}"
 if [ -f "./config/hosts" ]; then
     host="$(cat ./config/hosts | awk '{print $2}' | tail -n 1)"
     TARGET_HOST="${host:-"$TARGET_HOST"}"
