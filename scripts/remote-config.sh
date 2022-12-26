@@ -3,7 +3,7 @@ set -euo pipefail
 
 REMOTE_CONFIG_URL="${REMOTE_CONFIG_URL:-""}"
 REMOTE_CONFIG_USE_FRPROXY="${REMOTE_CONFIG_USE_FRPROXY:-""}"
-OUTPUT_DIR="config"
+CONFIG_DIR="${CONFIG_DIR:-"config"}"
 
 if [ -z "$REMOTE_CONFIG_URL" ]; then
     echo "[INFO] no remote config specified"
@@ -33,7 +33,7 @@ fi
 declare -a files=(".env" "hosts" "backend-transport/ca.crt")
 for file in "${files[@]}"; do
     url="$REMOTE_CONFIG_URL/$file"
-    filename="$OUTPUT_DIR/$file"
+    filename="$CONFIG_DIR/$file"
     dir="$(dirname "$filename")"
 
     mkdir -p "$dir"

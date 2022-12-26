@@ -13,7 +13,7 @@ RUN npm run build
 
 
 FROM node:18-alpine
-RUN apk add --no-cache bash dnsmasq curl openssl ca-certificates
+RUN apk add --no-cache bash dnsmasq curl openssl ca-certificates git
 WORKDIR /src
 COPY --from=socks5 /socks5 /bin/socks5
 COPY --from=builder /src .

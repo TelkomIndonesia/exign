@@ -28,12 +28,12 @@ version: "3.9"
 services:
   init:
     <<: *script
-    entrypoint: [ sh, -c ]
+    entrypoint: [ bash, -c ]
     environment:
       REMOTE_CONFIG_URL:
       REMOTE_CONFIG_USE_FRPROXY:
     command:
-      - ./scripts/keygen.sh && ./scripts/remote-config.sh
+      - ./scripts/keygen.sh && ./scripts/remote-config.sh && ./scripts/commit-config.sh
 
   frproxy:
     <<: *image
