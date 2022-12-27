@@ -12,7 +12,8 @@ interface DigestOptions {
 }
 export async function digest (input: Readable, opts?: DigestOptions): Promise<{ digest: string, data: Readable }> {
   const hash = createHash('sha256')
-  const hashpipe = pipeline(input, hash)
+  const digestProm = pipeline(input, hash)
+    .then(() => 'SHA-256=' + hash.digest('base64').toString())
 
   const buffers = []
   const maxBufSize = opts?.bufferSize || 8192
@@ -37,8 +38,6 @@ export async function digest (input: Readable, opts?: DigestOptions): Promise<{ 
     }
   }
 
-  await hashpipe; const digest = 'SHA-256=' + hash.digest('base64').toString()
-
   let data: Readable
   if (tmpFile && filepath && cleanup) {
     tmpFile.end()
@@ -47,7 +46,7 @@ export async function digest (input: Readable, opts?: DigestOptions): Promise<{ 
     data = Readable.from(buffers)
   }
 
-  return { data, digest }
+  return { data, digest: await digestProm }
 }
 
 const hopByHopHeaders = new Map<string, boolean>([
