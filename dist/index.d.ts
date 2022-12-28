@@ -1,1 +1,1 @@
-export { digest, sign } from './signature';
+export { sign } from './signature';

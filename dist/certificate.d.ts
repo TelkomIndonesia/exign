@@ -3,7 +3,7 @@ interface CertPair {
     key: pki.PrivateKey;
     cert: pki.Certificate;
 }
-export declare function loadCertPairSync(keyfile: string, certfile: string): CertPair;
+export declare function loadCertPairSync(keyPem: string, certPem: string): CertPair;
 interface createCertOptions {
     caKey: pki.PrivateKey;
     caCert: pki.Certificate;

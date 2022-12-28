@@ -1,4 +1,4 @@
-import { ClientRequest, IncomingHttpHeaders } from 'node:http'
+import { ClientRequest, IncomingMessage } from 'node:http'
 import { parseKey } from 'sshpk'
 import httpSignature from 'http-signature'
 
@@ -44,18 +44,12 @@ export function sign (req: ClientRequest, opts: SignOptions) {
   })
 }
 
-interface verifiable{
-  httpVersion: string
-  method?: string
-  url?: string
-  headers: IncomingHttpHeaders
-}
 interface verifiyOptions {
   publicKeys: Map<string, string>
 }
-export function verify (data: verifiable, opts:verifiyOptions) {
+export function verify (msg: IncomingMessage, opts:verifiyOptions) {
   try {
-    const parsed = httpSignature.parseRequest(data, { authorizationHeaderName: signatureHeader })
+    const parsed = httpSignature.parseRequest(msg, { authorizationHeaderName: signatureHeader })
     const pubKey = opts.publicKeys.get(parsed.keyId)
     if (!pubKey) {
       return { verified: false, error: 'no pub key found' }

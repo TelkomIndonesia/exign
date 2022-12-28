@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs'
 import express, { Application, NextFunction, Request, RequestHandler, Response } from 'express'
 import { sign } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
@@ -46,8 +45,8 @@ interface AppOptions {
 }
 
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
-  const key = readFileSync(opts.signature.keyfile, 'utf8')
-  const pubKey = readFileSync(opts.signature.pubkeyfile, 'utf8')
+  const key = opts.signature.keyfile
+  const pubKey = opts.signature.pubkeyfile
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq) {
       if (proxyReq.getHeader('content-length') === '0') {

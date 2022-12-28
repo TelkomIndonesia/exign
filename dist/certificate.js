@@ -1,12 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCertPair = exports.loadCertPairSync = void 0;
-const fs_1 = require("fs");
 const node_forge_1 = require("node-forge");
 const crypto_1 = require("crypto");
-function loadCertPairSync(keyfile, certfile) {
-    const keyPem = (0, fs_1.readFileSync)(keyfile, 'utf8');
-    const certPem = (0, fs_1.readFileSync)(certfile, 'utf8');
+function loadCertPairSync(keyPem, certPem) {
     const key = node_forge_1.pki.privateKeyFromPem(keyPem);
     const cert = node_forge_1.pki.certificateFromPem(certPem);
     return { key, cert };
