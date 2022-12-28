@@ -63,8 +63,8 @@ export function verify (data: verifiable, opts:verifiyOptions) {
     if (!httpSignature.verifySignature(parsed, pubKey)) {
       return { verified: false, error: 'invalid signature' }
     }
+    return { verified: true }
   } catch (err) {
     return { verified: false, error: err }
   }
-  return { verified: true }
 }
