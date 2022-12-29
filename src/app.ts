@@ -1,9 +1,9 @@
-import { readFileSync } from 'fs'
 import express, { Application, NextFunction, Request, RequestHandler, Response } from 'express'
-import { sign, digest } from './signature'
+import { sign } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { ClientRequest } from 'http'
+import { digest, restream } from './digest'
 require('express-async-errors')
 
 function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
@@ -44,9 +44,9 @@ interface AppOptions {
   secure: boolean
 }
 
-function newSignatureHandler (opts: AppOptions): RequestHandler {
-  const key = readFileSync(opts.signature.keyfile, 'utf8')
-  const pubKey = readFileSync(opts.signature.pubkeyfile, 'utf8')
+function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
+  const key = opts.signature.keyfile
+  const pubKey = opts.signature.pubkeyfile
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq) {
       if (proxyReq.getHeader('content-length') === '0') {
@@ -57,19 +57,23 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
       sign(proxyReq, { key, pubKey })
     })
 
-  return async function signatureHandler (req: Request, res: Response, next: NextFunction) {
-    const { digest: digestValue, data } = await digest(req, { bufferSize: opts.clientBodyBufferSize })
-    res.once('close', () => data.destroy())
-
+  return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
     const targetHost = opts.hostmap.get(req.hostname) ||
-      await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) || req.hostname
+      await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) ||
+      req.hostname
+
+    const [digestValue, body] = await Promise.all([
+      digest(req),
+      restream(req, { bufferSize: opts.clientBodyBufferSize })
+    ])
+    res.once('close', () => body.destroy())
 
     proxy.web(req, res,
       {
         changeOrigin: false,
         target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
         secure: opts.secure,
-        buffer: data,
+        buffer: body,
         headers: { digest: digestValue }
       },
       err => next(err))
@@ -78,7 +82,7 @@ function newSignatureHandler (opts: AppOptions): RequestHandler {
 
 export function newApp (opts: AppOptions): Application {
   const app = express()
-  app.all('/*', newSignatureHandler(opts))
+  app.all('/*', newSignatureProxyHandler(opts))
   app.use(errorMW)
 
   return app

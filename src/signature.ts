@@ -1,54 +1,6 @@
-import { createHash } from 'node:crypto'
-import { createReadStream, createWriteStream } from 'node:fs'
-import { ClientRequest } from 'node:http'
-import { Readable, Writable } from 'node:stream'
-import { pipeline } from 'node:stream/promises'
+import { ClientRequest, IncomingMessage } from 'node:http'
 import { parseKey } from 'sshpk'
-import { tmpFilename } from './util'
 import httpSignature from 'http-signature'
-
-interface DigestOptions {
-    bufferSize?: number
-}
-export async function digest (input: Readable, opts?: DigestOptions): Promise<{ digest: string, data: Readable }> {
-  const hash = createHash('sha256')
-  const hashpipe = pipeline(input, hash)
-
-  const buffers = []
-  const maxBufSize = opts?.bufferSize || 8192
-  let filepath: string | undefined
-  let cleanup: (() => void) | undefined
-  let tmpFile: Writable | undefined
-  for await (const chunk of input) {
-    if (!tmpFile && buffers.length + chunk.length <= maxBufSize) {
-      buffers.push(chunk)
-      continue
-    }
-
-    if (!tmpFile) {
-      ({ filepath, cleanup } = tmpFilename())
-      tmpFile = createWriteStream(filepath)
-      tmpFile.write(Buffer.from(buffers))
-    }
-
-    const ok = tmpFile.write(chunk)
-    if (!ok) {
-      await new Promise(resolve => tmpFile?.on('drain', resolve))
-    }
-  }
-
-  await hashpipe; const digest = 'SHA-256=' + hash.digest('base64').toString()
-
-  let data: Readable
-  if (tmpFile && filepath && cleanup) {
-    tmpFile.end()
-    data = createReadStream(filepath).on('close', cleanup)
-  } else {
-    data = Readable.from(buffers)
-  }
-
-  return { data, digest }
-}
 
 const hopByHopHeaders = new Map<string, boolean>([
   ['keep-alive', true],
@@ -63,13 +15,14 @@ const hopByHopHeaders = new Map<string, boolean>([
 const signatureHeader = 'signature'
 export const noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([signatureHeader])
 
-function keyFingerprint (key: string): string {
+export function publicKeyFingerprint (key: string): string {
   try {
     return parseKey(key).fingerprint('sha256').toString()
   } catch {
     return ''
   }
 }
+
 interface SignOptions {
     key: string
     keyId?: string
@@ -83,10 +36,29 @@ export function sign (req: ClientRequest, opts: SignOptions) {
 
   httpSignature.sign(req, {
     key: opts.key,
-    keyId: opts.keyId || (opts.pubKey ? keyFingerprint(opts.pubKey) : ''),
+    keyId: opts.keyId || (opts.pubKey ? publicKeyFingerprint(opts.pubKey) : ''),
     authorizationHeaderName: signatureHeader,
     headers: Object.keys(req.getHeaders())
-      .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v.toLowerCase()))
+      .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v))
       .concat(addParam)
   })
+}
+
+interface verifiyOptions {
+  publicKeys: Map<string, string>
+}
+export function verify (msg: IncomingMessage, opts:verifiyOptions) {
+  try {
+    const parsed = httpSignature.parseRequest(msg, { authorizationHeaderName: signatureHeader })
+    const pubKey = opts.publicKeys.get(parsed.keyId)
+    if (!pubKey) {
+      return { verified: false, error: 'no pub key found' }
+    }
+    if (!httpSignature.verifySignature(parsed, pubKey)) {
+      return { verified: false, error: 'invalid signature' }
+    }
+    return { verified: true }
+  } catch (err) {
+    return { verified: false, error: err }
+  }
 }

@@ -7,7 +7,6 @@ import { createCertPair, loadCertPairSync } from './certificate'
 import { config } from './config'
 require('express-async-errors')
 
-const app = newApp(config)
 const { key: caKey, cert: caCert } = loadCertPairSync(config.transport.caKeyfile, config.transport.caCertfile)
 const { key: localhostKey, cert: localhostCert } = createCertPair('localhost', { caKey, caCert })
 function sniCallback (domain: string, cb: (err: Error | null, ctx?: tls.SecureContext) => void) {
@@ -26,6 +25,7 @@ const httpsServerOptions = {
   ca: pki.certificateToPem(caCert)
 }
 
+const app = newApp(config)
 http.createServer(app)
   .listen(80, () => console.log('HTTP Server running on port 80'))
 https.createServer(httpsServerOptions, app)

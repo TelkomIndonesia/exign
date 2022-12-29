@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 KEYS_PARENT_DIR="${KEYS_PARENT_DIR:-"config"}"
-KEYS_TRANSPORT_DIR="${KEYS_PARENT_DIR}/frontend-transport"
+KEYS_TRANSPORT_DIR="${KEYS_PARENT_DIR}/transport"
 KEYS_SIGNATURE_DIR="${KEYS_PARENT_DIR}/signature"
 
 KEY_TRANSPORT_CA_PRIVATE="${KEYS_TRANSPORT_DIR}/ca-key.pem"

@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs'
 import { pki, md } from 'node-forge'
 import { randomBytes } from 'crypto'
 
@@ -7,9 +6,7 @@ interface CertPair {
     cert: pki.Certificate;
 }
 
-export function loadCertPairSync (keyfile: string, certfile: string): CertPair {
-  const keyPem = readFileSync(keyfile, 'utf8')
-  const certPem = readFileSync(certfile, 'utf8')
+export function loadCertPairSync (keyPem: string, certPem: string): CertPair {
   const key = pki.privateKeyFromPem(keyPem)
   const cert = pki.certificateFromPem(certPem)
   return { key, cert }
