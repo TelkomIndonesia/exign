@@ -58,12 +58,15 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
     })
 
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
-    const [digestValue, body] = [await digest(req), await restream(req, { bufferSize: opts.clientBodyBufferSize })]
-    res.once('close', () => body.destroy())
-
     const targetHost = opts.hostmap.get(req.hostname) ||
       await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) ||
       req.hostname
+
+    const [digestValue, body] = await Promise.all([
+      digest(req),
+      restream(req, { bufferSize: opts.clientBodyBufferSize })
+    ])
+    res.once('close', () => body.destroy())
 
     proxy.web(req, res,
       {

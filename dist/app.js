@@ -46,11 +46,14 @@ function newSignatureProxyHandler(opts) {
     });
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const [digestValue, body] = [yield (0, digest_1.digest)(req), yield (0, digest_1.restream)(req, { bufferSize: opts.clientBodyBufferSize })];
-            res.once('close', () => body.destroy());
             const targetHost = opts.hostmap.get(req.hostname) ||
                 (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.doubleDashDomains)) ||
                 req.hostname;
+            const [digestValue, body] = yield Promise.all([
+                (0, digest_1.digest)(req),
+                (0, digest_1.restream)(req, { bufferSize: opts.clientBodyBufferSize })
+            ]);
+            res.once('close', () => body.destroy());
             proxy.web(req, res, {
                 changeOrigin: false,
                 target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
