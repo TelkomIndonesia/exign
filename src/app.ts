@@ -4,6 +4,7 @@ import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { ClientRequest } from 'http'
 import { digest, restream } from './digest'
+import { newResponseLogger } from './log'
 require('express-async-errors')
 
 function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
@@ -42,11 +43,15 @@ interface AppOptions {
   doubleDashDomains: string[]
   hostmap: Map<string, string>,
   secure: boolean
+  logdb: {
+    directory: string
+  }
 }
 
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
   const key = opts.signature.keyfile
   const pubKey = opts.signature.pubkeyfile
+  const resLogger = newResponseLogger(opts.logdb)
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq) {
       if (proxyReq.getHeader('content-length') === '0') {
@@ -56,6 +61,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       log(proxyReq)
       sign(proxyReq, { key, pubKey })
     })
+    .on('proxyRes', resLogger)
 
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
     const targetHost = opts.hostmap.get(req.hostname) ||

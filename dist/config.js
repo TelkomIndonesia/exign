@@ -21,6 +21,10 @@ function doubleDashDomains() {
 function file(name) {
     return (0, fs_1.readFileSync)(name, 'utf-8');
 }
+function dir(name) {
+    (0, fs_1.mkdirSync)(name, { recursive: true });
+    return name;
+}
 exports.config = {
     clientBodyBufferSize: parseInt(process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '') || 8192,
     hostmap: hostmap(),
@@ -33,6 +37,9 @@ exports.config = {
     transport: {
         caKeyfile: file(process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './config/frontend-transport/ca-key.pem'),
         caCertfile: file(process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './config/frontend-transport/ca.crt')
+    },
+    logdb: {
+        directory: dir(process.env.FRPROXY_LOGDB_DIRECTORY || './logs')
     }
 };
 //# sourceMappingURL=config.js.map

@@ -8,6 +8,9 @@ interface AppOptions {
     doubleDashDomains: string[];
     hostmap: Map<string, string>;
     secure: boolean;
+    logdb: {
+        directory: string;
+    };
 }
 export declare function newApp(opts: AppOptions): Application;
 export {};

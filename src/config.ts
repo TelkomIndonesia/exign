@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { readFileSync } from 'fs'
+import { mkdirSync, readFileSync } from 'fs'
 
 dotenv.config({ path: process.env.DOTENV_CONFIG_PATH })
 
@@ -24,6 +24,11 @@ function file (name:string) {
   return readFileSync(name, 'utf-8')
 }
 
+function dir (name: string) {
+  mkdirSync(name, { recursive: true })
+  return name
+}
+
 export const config = {
   clientBodyBufferSize: parseInt(process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '') || 8192,
 
@@ -38,5 +43,8 @@ export const config = {
   transport: {
     caKeyfile: file(process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './config/frontend-transport/ca-key.pem'),
     caCertfile: file(process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './config/frontend-transport/ca.crt')
+  },
+  logdb: {
+    directory: dir(process.env.FRPROXY_LOGDB_DIRECTORY || './logs')
   }
 }

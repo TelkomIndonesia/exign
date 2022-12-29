@@ -7,6 +7,7 @@ const signature_1 = require("./signature");
 const double_dash_domain_1 = require("./double-dash-domain");
 const proxy_1 = require("./proxy");
 const digest_1 = require("./digest");
+const log_1 = require("./log");
 require('express-async-errors');
 function errorMW(err, _, res, next) {
     if (err) {
@@ -36,6 +37,7 @@ function log(req) {
 function newSignatureProxyHandler(opts) {
     const key = opts.signature.keyfile;
     const pubKey = opts.signature.pubkeyfile;
+    const resLogger = (0, log_1.newResponseLogger)(opts.logdb);
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq) {
         if (proxyReq.getHeader('content-length') === '0') {
@@ -43,7 +45,8 @@ function newSignatureProxyHandler(opts) {
         }
         log(proxyReq);
         (0, signature_1.sign)(proxyReq, { key, pubKey });
-    });
+    })
+        .on('proxyRes', resLogger);
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const targetHost = opts.hostmap.get(req.hostname) ||
