@@ -1,10 +1,10 @@
-import { v4 as uuidv4 } from 'uuid'
 import { join as pathJoin } from 'path'
 import { tmpdir } from 'os'
 import { rm } from 'fs/promises'
+import { ulid } from 'ulid'
 
 export function tmpFilename (): { filepath: string, cleanup: () => Promise<void> } {
-  const filepath = pathJoin(tmpdir(), 'tmp-file-' + uuidv4())
+  const filepath = pathJoin(tmpdir(), 'tmp-file-' + ulid())
   const cleanup = async function () {
     try {
       await rm(filepath)
