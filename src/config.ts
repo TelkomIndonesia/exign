@@ -41,8 +41,8 @@ export const config = {
     pubkeyfile: file(process.env.FRPROXY_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem')
   },
   transport: {
-    caKeyfile: file(process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './config/frontend-transport/ca-key.pem'),
-    caCertfile: file(process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './config/frontend-transport/ca.crt')
+    caKeyfile: file(process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './config/transport/ca-key.pem'),
+    caCertfile: file(process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './config/transport/ca.crt')
   },
   logdb: {
     directory: dir(process.env.FRPROXY_LOGDB_DIRECTORY || './logs')
