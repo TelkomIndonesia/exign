@@ -1,6 +1,10 @@
-import { IncomingMessage } from 'http';
+import { ClientRequest } from 'http';
 interface newLogDBOptions {
     directory: string;
 }
-export declare function newResponseLogger(opts: newLogDBOptions): (res: IncomingMessage) => Promise<void>;
+interface ClientRequestLine {
+    url: string;
+    httpVersion: string;
+}
+export declare function newHTTPMessageLogger(opts: newLogDBOptions): (req: ClientRequest, reqLine: ClientRequestLine) => Promise<void>;
 export {};

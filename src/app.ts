@@ -4,7 +4,8 @@ import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { ClientRequest } from 'http'
 import { digest, restream } from './digest'
-import { newResponseLogger } from './log'
+import { newHTTPMessageLogger } from './log'
+import { ulid } from 'ulid'
 require('express-async-errors')
 
 function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
@@ -51,28 +52,30 @@ interface AppOptions {
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
   const key = opts.signature.keyfile
   const pubKey = opts.signature.pubkeyfile
-  const resLogger = newResponseLogger(opts.logdb)
+  const logMessage = newHTTPMessageLogger(opts.logdb)
+
   const proxy = createProxyServer({ ws: true })
-    .on('proxyReq', function onProxyReq (proxyReq) {
+    .on('proxyReq', function onProxyReq (proxyReq, req) {
       if (proxyReq.getHeader('content-length') === '0') {
         proxyReq.removeHeader('content-length') // some reverse proxy drop 'content-length' when it is zero
       }
+      proxyReq.setHeader('x-request-id', ulid())
 
       log(proxyReq)
       sign(proxyReq, { key, pubKey })
+      logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
     })
-    .on('proxyRes', resLogger)
 
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
-    const targetHost = opts.hostmap.get(req.hostname) ||
-      await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) ||
-      req.hostname
-
     const [digestValue, body] = await Promise.all([
       digest(req),
       restream(req, { bufferSize: opts.clientBodyBufferSize })
     ])
     res.once('close', () => body.destroy())
+
+    const targetHost = opts.hostmap.get(req.hostname) ||
+      await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) ||
+      req.hostname
 
     proxy.web(req, res,
       {
