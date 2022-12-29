@@ -4,11 +4,9 @@ import nock from 'nock'
 import { config } from './config'
 import { ClientRequest } from 'http'
 import { noVerifyHeaders } from './signature'
-import { tmpFilename } from './util'
-import { writeFileSync } from 'fs'
 import { newApp } from './app'
 import { Application } from 'express'
-import { v4 as uuid4 } from 'uuid'
+import { ulid } from 'ulid'
 
 const testKey = {
   private: `
@@ -27,12 +25,6 @@ Ngn8i4FhzILRVo/I6fZC+sb5SoZDgR/T6MXzVmj3qLRKw73J86OItmezGw==
   id: 'SHA256:JB72jpoWUunMRa9m0SVoa8Ms1Z2wL/5AZ4cVLw+bgd4'
 }
 
-function writeTmpFile (content: string) {
-  const { filepath, cleanup } = tmpFilename()
-  writeFileSync(filepath, content)
-  return { filepath, cleanup }
-}
-
 function interceptReq (url: URL, method: string): Promise<ClientRequest & { headers: Record<string, string>, url: string }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -49,34 +41,28 @@ function interceptReq (url: URL, method: string): Promise<ClientRequest & { head
   })
 }
 
-function newTestApp (): { app: Application, cleanup: () => void } {
-  const { filepath: key, cleanup: keyCleanup } = writeTmpFile(testKey.private)
-  const { filepath: pub, cleanup: pubCleanup } = writeTmpFile(testKey.private)
-
+function newTestApp (): { app: Application } {
   const app = newApp({
     hostmap: new Map<string, string>(),
     doubleDashDomains: ['domain.test'],
     clientBodyBufferSize: config.clientBodyBufferSize,
     signature: {
-      keyfile: key,
-      pubkeyfile: pub
+      keyfile: testKey.private,
+      pubkeyfile: testKey.public
     },
-    secure: true
+    secure: true,
+    logdb: {
+      directory: 'logs'
+    }
   })
-  const cleanup = function tempFilesCleanup () {
-    keyCleanup()
-    pubCleanup()
-  }
-  return { app, cleanup }
+  return { app }
 }
 
 describe('Express App', function () {
   const deferrers: { (): void }[] = []
   let app: Application
   beforeEach(function () {
-    let cleanup: () => void
-    ({ app, cleanup } = newTestApp())
-    deferrers.push(cleanup)
+    ({ app } = newTestApp())
   })
   afterEach(function () {
     for (const fn of deferrers) fn()
@@ -87,7 +73,7 @@ describe('Express App', function () {
     const promReq = interceptReq(url, method)
     await request(app)
       .get(url.pathname)
-      .set('host', uuid4() + '--' + url.hostname)
+      .set('host', ulid() + '--' + url.hostname)
     const req = await promReq
     const parsed = httpSignature.parseRequest(req, {
       headers: Object.keys(req.headers)
