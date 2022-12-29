@@ -6,9 +6,11 @@ const express_1 = tslib_1.__importDefault(require("express"));
 const signature_1 = require("./signature");
 const double_dash_domain_1 = require("./double-dash-domain");
 const proxy_1 = require("./proxy");
+const http_1 = require("http");
 const digest_1 = require("./digest");
 const log_1 = require("./log");
 const ulid_1 = require("ulid");
+const https_1 = require("https");
 require('express-async-errors');
 function errorMW(err, _, res, next) {
     if (err) {
@@ -49,6 +51,8 @@ function newSignatureProxyHandler(opts) {
         (0, signature_1.sign)(proxyReq, { key, pubKey });
         logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
     });
+    const httpagent = new http_1.Agent({ keepAlive: true });
+    const httpsagent = new https_1.Agent({ keepAlive: true });
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const [digestValue, body] = yield Promise.all([
@@ -64,7 +68,8 @@ function newSignatureProxyHandler(opts) {
                 target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
                 secure: opts.secure,
                 buffer: body,
-                headers: { digest: digestValue }
+                headers: { digest: digestValue },
+                agent: req.protocol === 'http' ? httpagent : httpsagent
             }, err => next(err));
         });
     };

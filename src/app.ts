@@ -2,10 +2,11 @@ import express, { Application, NextFunction, Request, RequestHandler, Response }
 import { sign } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
-import { ClientRequest } from 'http'
+import { Agent as HTTPAgent, ClientRequest } from 'http'
 import { digest, restream } from './digest'
 import { newHTTPMessageLogger } from './log'
 import { ulid } from 'ulid'
+import { Agent as HTTPSAgent } from 'https'
 require('express-async-errors')
 
 function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
@@ -66,6 +67,9 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
     })
 
+  const httpagent = new HTTPAgent({ keepAlive: true })
+  const httpsagent = new HTTPSAgent({ keepAlive: true })
+
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
     const [digestValue, body] = await Promise.all([
       digest(req),
@@ -83,7 +87,8 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
         target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
         secure: opts.secure,
         buffer: body,
-        headers: { digest: digestValue }
+        headers: { digest: digestValue },
+        agent: req.protocol === 'http' ? httpagent : httpsagent
       },
       err => next(err))
   }
