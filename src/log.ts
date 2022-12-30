@@ -33,28 +33,21 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
       return
     }
 
+    const pad = function pad (n: number) { return n.toString().padStart(16, '0') }
+
     db.batch()
       .put(`${id}-req-0-start-line`, `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`)
       .put(`${id}-req-1-headers`, headersToString(req.getHeaders()))
       .write()
 
-    let i = 0
-    const reqWrite = req.write
-    req.write = (chunk, ...args) => {
-      db.put(`${id}-req-2-data${i++}`, chunk)
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      return reqWrite.apply(req, [chunk, ...args])
+    let i = 0; const wrapWriteEnd = function wrapWriteEnd (req: ClientRequest, fn: (chunk:any, ...args:any) => any) {
+      return function wrapped (chunk:any, ...args:any) : any {
+        chunk && db.put(`${id}-req-2-data-${pad(i++)}`, chunk)
+        return fn.apply(req, [chunk, ...args])
+      }
     }
-    const reqEnd = req.end
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    req.end = (chunk, ...args) => {
-      chunk && db.put(`${id}-req-2-data${i++}`, chunk)
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      return reqEnd.apply(req, [chunk, ...args])
-    }
+    req.write = wrapWriteEnd(req, req.write)
+    req.end = wrapWriteEnd(req, req.end)
 
     const res = await new Promise<IncomingMessage>((resolve, reject) =>
       req.once('response', resolve).once('error', reject))
@@ -64,9 +57,8 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
       .put(`${id}-res-1-headers`, headersToString(res.headers))
       .write()
 
-    let j = 0
-    for await (const chunk of res) {
-      db.put(`${id}-res-2-data-${j++}`, chunk)
+    let j = 0; for await (const chunk of res) {
+      db.put(`${id}-res-2-data-${pad(j++)}`, chunk)
     }
 
     if (res.trailers) {

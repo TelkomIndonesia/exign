@@ -24,27 +24,20 @@ function newHTTPMessageLogger(opts) {
             if (!id) {
                 return;
             }
+            const pad = function pad(n) { return n.toString().padStart(16, '0'); };
             db.batch()
                 .put(`${id}-req-0-start-line`, `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`)
                 .put(`${id}-req-1-headers`, headersToString(req.getHeaders()))
                 .write();
             let i = 0;
-            const reqWrite = req.write;
-            req.write = (chunk, ...args) => {
-                db.put(`${id}-req-2-data${i++}`, chunk);
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                return reqWrite.apply(req, [chunk, ...args]);
+            const wrapWriteEnd = function wrapWriteEnd(req, fn) {
+                return function wrapped(chunk, ...args) {
+                    chunk && db.put(`${id}-req-2-data-${pad(i++)}`, chunk);
+                    return fn.apply(req, [chunk, ...args]);
+                };
             };
-            const reqEnd = req.end;
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            req.end = (chunk, ...args) => {
-                chunk && db.put(`${id}-req-2-data${i++}`, chunk);
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                return reqEnd.apply(req, [chunk, ...args]);
-            };
+            req.write = wrapWriteEnd(req, req.write);
+            req.end = wrapWriteEnd(req, req.end);
             const res = yield new Promise((resolve, reject) => req.once('response', resolve).once('error', reject));
             db.batch()
                 .put(`${id}-res-0-status-line`, `HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}\r\n`)
@@ -54,7 +47,7 @@ function newHTTPMessageLogger(opts) {
             try {
                 for (var res_1 = tslib_1.__asyncValues(res), res_1_1; res_1_1 = yield res_1.next(), !res_1_1.done;) {
                     const chunk = res_1_1.value;
-                    db.put(`${id}-res-2-data-${j++}`, chunk);
+                    db.put(`${id}-res-2-data-${pad(j++)}`, chunk);
                 }
             }
             catch (e_1_1) { e_1 = { error: e_1_1 }; }
