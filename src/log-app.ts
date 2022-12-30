@@ -12,7 +12,7 @@ export function newLogApp (opts:appLogOptions) : Application {
   const app = express()
 
   const findHTTPMessage = newHTTPMessageFinder(opts.logdb)
-  app.get('/message/:id', async (req, res) => {
+  app.get('/messages/:id', async (req, res) => {
     const msg = await findHTTPMessage({ id: req.params.id }, { decodeBody: req.query['decode-body'] === 'true' })
     if (!msg) {
       return res.status(404).send('not found')
