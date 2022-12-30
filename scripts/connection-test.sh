@@ -14,8 +14,7 @@ until curl -ksfL "$TARGET_HOST" >/dev/null; do
 done
 
 if [ ! -z "$SOCKS5_PROXY_ENDPOINT" ]; then
-    i=0
-    until curl -ksfL -x socks5://$SOCKS5_PROXY_ENDPOINT "$TARGET_HOST" >/dev/null; do
+    until curl -ksfL -x socks5h://$SOCKS5_PROXY_ENDPOINT "$TARGET_HOST" >/dev/null; do
         if ((i++ == 5)); then
             echo "[WARN] Give up trying. You might not be able to use the SOCKS5 proxy."
             break

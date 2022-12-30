@@ -9,16 +9,8 @@ const proxy_1 = require("./proxy");
 const http_1 = require("http");
 const digest_1 = require("./digest");
 const log_1 = require("./log");
-const ulid_1 = require("ulid");
 const https_1 = require("https");
 require('express-async-errors');
-function errorMW(err, _, res, next) {
-    if (err) {
-        console.log({ error: err });
-        res.sendStatus(500);
-    }
-    next(err);
-}
 function newSignatureProxyHandler(opts) {
     const key = opts.signature.keyfile;
     const pubKey = opts.signature.pubkeyfile;
@@ -28,10 +20,13 @@ function newSignatureProxyHandler(opts) {
         if (proxyReq.getHeader('content-length') === '0') {
             proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
         }
-        proxyReq.setHeader('x-request-id', (0, ulid_1.ulid)());
-        (0, log_1.consolelog)(proxyReq);
+        (0, log_1.attachID)(proxyReq);
+        (0, log_1.consoleLog)(proxyReq);
         logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
         (0, signature_1.sign)(proxyReq, { key, pubKey });
+    })
+        .on('proxyRes', (proxyRes, _, res) => {
+        proxyRes.on('end', () => res.addTrailers(proxyRes.trailers));
     });
     const httpagent = new http_1.Agent({ keepAlive: true });
     const httpsagent = new https_1.Agent({ keepAlive: true });
@@ -55,6 +50,13 @@ function newSignatureProxyHandler(opts) {
             }, err => next(err));
         });
     };
+}
+function errorMW(err, _, res, next) {
+    if (err) {
+        console.log({ error: err });
+        res.sendStatus(500);
+    }
+    next(err);
 }
 function newApp(opts) {
     const app = (0, express_1.default)();

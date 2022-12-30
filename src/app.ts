@@ -4,8 +4,7 @@ import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { Agent as HTTPAgent } from 'http'
 import { digest, restream } from './digest'
-import { consolelog, newHTTPMessageLogger } from './log'
-import { ulid } from 'ulid'
+import { attachID, consoleLog, newHTTPMessageLogger } from './log'
 import { Agent as HTTPSAgent } from 'https'
 require('express-async-errors')
 
@@ -33,9 +32,9 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       if (proxyReq.getHeader('content-length') === '0') {
         proxyReq.removeHeader('content-length') // some reverse proxy drop 'content-length' when it is zero
       }
-      proxyReq.setHeader('x-request-id', ulid())
 
-      consolelog(proxyReq)
+      attachID(proxyReq)
+      consoleLog(proxyReq)
       logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
       sign(proxyReq, { key, pubKey })
     })

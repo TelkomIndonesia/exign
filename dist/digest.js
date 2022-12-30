@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.restream = exports.digest = exports.formatHash = void 0;
 const tslib_1 = require("tslib");
 const crypto_1 = require("crypto");
-const fs_1 = require("fs");
+const promises_1 = require("fs/promises");
 const stream_1 = require("stream");
-const promises_1 = require("stream/promises");
+const promises_2 = require("stream/promises");
 const util_1 = require("./util");
 function formatHash(hash) {
     return 'SHA-256=' + hash.digest('base64').toString();
@@ -14,7 +14,7 @@ exports.formatHash = formatHash;
 function digest(input) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const hash = (0, crypto_1.createHash)('sha256');
-        yield (0, promises_1.pipeline)(input, hash);
+        yield (0, promises_2.pipeline)(input, hash);
         return formatHash(hash);
     });
 }
@@ -25,9 +25,8 @@ function restream(input, opts) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const buffers = [];
         const maxBufSize = (opts === null || opts === void 0 ? void 0 : opts.bufferSize) || 8192;
-        let filepath;
-        let cleanup;
         let tmpFile;
+        let tmpFileCleanup;
         try {
             for (input_1 = tslib_1.__asyncValues(input); input_1_1 = yield input_1.next(), !input_1_1.done;) {
                 const chunk = input_1_1.value;
@@ -36,16 +35,11 @@ function restream(input, opts) {
                     continue;
                 }
                 if (!tmpFile) {
-                    ({ filepath, cleanup } = (0, util_1.tmpFilename)());
-                    input.pause();
-                    tmpFile = (0, fs_1.createWriteStream)(filepath);
-                    tmpFile.write(Buffer.from(buffers));
-                    input.resume();
+                    const { filepath, cleanup } = (0, util_1.tmpFilename)();
+                    [tmpFile, tmpFileCleanup] = [yield (0, promises_1.open)(filepath, 'w+'), cleanup];
+                    yield tmpFile.write(Buffer.from(buffers));
                 }
-                const ok = tmpFile.write(chunk);
-                if (!ok) {
-                    yield new Promise(resolve => tmpFile === null || tmpFile === void 0 ? void 0 : tmpFile.once('drain', resolve));
-                }
+                yield tmpFile.write(chunk);
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
@@ -55,9 +49,8 @@ function restream(input, opts) {
             }
             finally { if (e_1) throw e_1.error; }
         }
-        if (tmpFile && filepath && cleanup) {
-            tmpFile.end();
-            return (0, fs_1.createReadStream)(filepath).once('close', cleanup);
+        if (tmpFile && tmpFileCleanup) {
+            return tmpFile.createReadStream({ start: 0 }).once('close', tmpFileCleanup);
         }
         else {
             return stream_1.Readable.from(buffers, { objectMode: false });
