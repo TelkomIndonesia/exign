@@ -9,14 +9,6 @@ import { ulid } from 'ulid'
 import { Agent as HTTPSAgent } from 'https'
 require('express-async-errors')
 
-function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
-  if (err) {
-    console.log({ error: err })
-    res.sendStatus(500)
-  }
-  next(err)
-}
-
 interface AppOptions {
   signature: {
     keyfile: string,
@@ -47,7 +39,9 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
       sign(proxyReq, { key, pubKey })
     })
-
+    .on('proxyRes', (proxyRes, _, res) => {
+      proxyRes.on('end', () => res.addTrailers(proxyRes.trailers))
+    })
   const httpagent = new HTTPAgent({ keepAlive: true })
   const httpsagent = new HTTPSAgent({ keepAlive: true })
 
@@ -73,6 +67,14 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       },
       err => next(err))
   }
+}
+
+function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
+  if (err) {
+    console.log({ error: err })
+    res.sendStatus(500)
+  }
+  next(err)
 }
 
 export function newApp (opts: AppOptions): Application {

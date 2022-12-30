@@ -8,7 +8,6 @@ import { flatten } from 'flat'
 interface newLogDBOptions {
   directory: string
 }
-
 function newLogDB (opts: newLogDBOptions) {
   const now = new Date()
   const date = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
@@ -21,12 +20,14 @@ function headersToString (headers: IncomingHttpHeaders | OutgoingHttpHeaders) {
       return str + name + ': ' + (Array.isArray(value) ? value.join(',') : value + '\r\n')
     }, '') + '\r\n'
 }
+function pad (n: number) {
+  return n.toString().padStart(16, '0')
+}
 
 interface ClientRequestLine {
   url: string
   httpVersion: string
 }
-
 export function newHTTPMessageLogger (opts: newLogDBOptions) {
   const db = newLogDB(opts)
 
@@ -36,20 +37,18 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
       return
     }
 
-    const pad = function pad (n: number) { return n.toString().padStart(16, '0') }
-
     db.batch()
-      .put(`${id}-req-0-start-line`, `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`)
-      .put(`${id}-req-1-headers`, headersToString(req.getHeaders()))
+      .put(`${id}-req-0`, `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`)
+      .put(`${id}-req-1`, headersToString(req.getHeaders()))
       .write()
 
-    /* eslint-disable  @typescript-eslint/no-explicit-any */
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     let i = 0; const wrapWriteEnd = function wrapWriteEnd (req: ClientRequest, fn: (chunk:any, ...args:any) => any) {
       return function wrapped (chunk:any, ...args:any) {
-        chunk && db.put(`${id}-req-2-data-${pad(i++)}`, chunk)
+        chunk && db.put(`${id}-req-2-${pad(i++)}`, chunk)
         return fn.apply(req, [chunk, ...args])
       }
-    } /* eslint-enable  @typescript-eslint/no-explicit-any */
+    } /* eslint-enable @typescript-eslint/no-explicit-any */
     req.write = wrapWriteEnd(req, req.write)
     req.end = wrapWriteEnd(req, req.end)
 
@@ -57,17 +56,15 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
       req.once('response', resolve).once('error', reject))
 
     db.batch()
-      .put(`${id}-res-0-status-line`, `HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}\r\n`)
-      .put(`${id}-res-1-headers`, headersToString(res.headers))
+      .put(`${id}-res-0`, `HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}\r\n`)
+      .put(`${id}-res-1`, headersToString(res.headers))
       .write()
 
     let j = 0; for await (const chunk of res) {
-      db.put(`${id}-res-2-data-${pad(j++)}`, chunk)
+      db.put(`${id}-res-2-${pad(j++)}`, chunk)
     }
 
-    if (res.trailers) {
-      db.put(`${id}-res-3-trailers`, headersToString(res.trailers))
-    }
+    res.trailers && db.put(`${id}-res-3`, headersToString(res.trailers))
   }
 }
 
@@ -76,6 +73,7 @@ export function consolelog (req: ClientRequest) {
     res.on('close', function log () {
       const obj = {
         request: {
+          http_version: res.httpVersion,
           method: req.method,
           url: `${req.protocol}//${req.host}${req.path}`,
           headers: {

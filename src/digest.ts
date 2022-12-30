@@ -1,6 +1,6 @@
 import { createHash, Hash } from 'crypto'
-import { createReadStream, createWriteStream } from 'fs'
-import { Readable, Writable } from 'stream'
+import { FileHandle, open } from 'fs/promises'
+import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
 import { tmpFilename } from './util'
 
@@ -15,15 +15,14 @@ export async function digest (input: Readable) {
 }
 
 interface RestreamOptions {
-    bufferSize?: number
+  bufferSize?: number
 }
 export async function restream (input: Readable, opts?: RestreamOptions) {
   const buffers = []
   const maxBufSize = opts?.bufferSize || 8192
 
-  let filepath: string | undefined
-  let cleanup: (() => void) | undefined
-  let tmpFile: Writable | undefined
+  let tmpFile: FileHandle | undefined
+  let tmpFileCleanup: (() => void) | undefined
   for await (const chunk of input) {
     if (!tmpFile && buffers.length + chunk.length <= maxBufSize) {
       buffers.push(chunk)
@@ -31,22 +30,15 @@ export async function restream (input: Readable, opts?: RestreamOptions) {
     }
 
     if (!tmpFile) {
-      ({ filepath, cleanup } = tmpFilename())
-      input.pause()
-      tmpFile = createWriteStream(filepath)
-      tmpFile.write(Buffer.from(buffers))
-      input.resume()
+      const { filepath, cleanup } = tmpFilename();
+      [tmpFile, tmpFileCleanup] = [await open(filepath, 'w+'), cleanup]
+      await tmpFile.write(Buffer.from(buffers))
     }
-
-    const ok = tmpFile.write(chunk)
-    if (!ok) {
-      await new Promise(resolve => tmpFile?.once('drain', resolve))
-    }
+    await tmpFile.write(chunk)
   }
 
-  if (tmpFile && filepath && cleanup) {
-    tmpFile.end()
-    return createReadStream(filepath).once('close', cleanup)
+  if (tmpFile && tmpFileCleanup) {
+    return tmpFile.createReadStream({ start: 0 }).once('close', tmpFileCleanup)
   } else {
     return Readable.from(buffers, { objectMode: false })
   }
