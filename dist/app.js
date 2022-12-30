@@ -19,24 +19,6 @@ function errorMW(err, _, res, next) {
     }
     next(err);
 }
-function log(req) {
-    req.on('response', (res) => {
-        res.on('close', function log() {
-            console.log({
-                request: {
-                    method: req.method,
-                    url: `${req.protocol}//${req.host}${req.path}`,
-                    headers: req.getHeaders()
-                },
-                response: {
-                    status: res.statusCode,
-                    headers: res.headers,
-                    trailers: res.trailers
-                }
-            });
-        });
-    });
-}
 function newSignatureProxyHandler(opts) {
     const key = opts.signature.keyfile;
     const pubKey = opts.signature.pubkeyfile;
@@ -47,9 +29,9 @@ function newSignatureProxyHandler(opts) {
             proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
         }
         proxyReq.setHeader('x-request-id', (0, ulid_1.ulid)());
-        log(proxyReq);
-        (0, signature_1.sign)(proxyReq, { key, pubKey });
+        (0, log_1.consolelog)(proxyReq);
         logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
+        (0, signature_1.sign)(proxyReq, { key, pubKey });
     });
     const httpagent = new http_1.Agent({ keepAlive: true });
     const httpsagent = new https_1.Agent({ keepAlive: true });

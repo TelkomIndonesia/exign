@@ -1,6 +1,9 @@
 import { ClientRequest, IncomingHttpHeaders, IncomingMessage, OutgoingHttpHeaders } from 'http'
 import { Level } from 'level'
 import { resolve } from 'path'
+import { signatureHeader } from './signature'
+import logfmt from 'logfmt'
+import { flatten } from 'flat'
 
 interface newLogDBOptions {
   directory: string
@@ -27,7 +30,7 @@ interface ClientRequestLine {
 export function newHTTPMessageLogger (opts: newLogDBOptions) {
   const db = newLogDB(opts)
 
-  return async function logMessage (req: ClientRequest, reqLine: ClientRequestLine) {
+  return async function logHTTPMessage (req: ClientRequest, reqLine: ClientRequestLine) {
     const id = req.getHeader('x-request-id')
     if (!id) {
       return
@@ -40,12 +43,13 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
       .put(`${id}-req-1-headers`, headersToString(req.getHeaders()))
       .write()
 
+    /* eslint-disable  @typescript-eslint/no-explicit-any */
     let i = 0; const wrapWriteEnd = function wrapWriteEnd (req: ClientRequest, fn: (chunk:any, ...args:any) => any) {
-      return function wrapped (chunk:any, ...args:any) : any {
+      return function wrapped (chunk:any, ...args:any) {
         chunk && db.put(`${id}-req-2-data-${pad(i++)}`, chunk)
         return fn.apply(req, [chunk, ...args])
       }
-    }
+    } /* eslint-enable  @typescript-eslint/no-explicit-any */
     req.write = wrapWriteEnd(req, req.write)
     req.end = wrapWriteEnd(req, req.end)
 
@@ -65,4 +69,28 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
       db.put(`${id}-res-3-trailers`, headersToString(res.trailers))
     }
   }
+}
+
+export function consolelog (req: ClientRequest) {
+  req.on('response', (res) => {
+    res.on('close', function log () {
+      const obj = {
+        request: {
+          method: req.method,
+          url: `${req.protocol}//${req.host}${req.path}`,
+          headers: {
+            'x-request-id': req.getHeader('x-request-id'),
+            digest: req.getHeader('digest'),
+            [signatureHeader]: req.getHeader(signatureHeader)
+          }
+        },
+        response: {
+          status: res.statusCode,
+          headers: Object.keys(res.headers).length > 0 ? res.headers : undefined,
+          trailers: Object.keys(res.trailers).length > 0 ? res.trailers : undefined
+        }
+      }
+      logfmt.log(flatten(obj, { maxDepth: 5 }))
+    })
+  })
 }

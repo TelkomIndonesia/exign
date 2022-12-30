@@ -12,7 +12,7 @@ const hopByHopHeaders = new Map<string, boolean>([
   ['proxy-authenticate', true],
   ['proxy-authorization', true]
 ])
-const signatureHeader = 'signature'
+export const signatureHeader = 'signature'
 export const noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([signatureHeader])
 
 export function publicKeyFingerprint (key: string): string {

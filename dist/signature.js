@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verify = exports.sign = exports.publicKeyFingerprint = exports.noVerifyHeaders = void 0;
+exports.verify = exports.sign = exports.publicKeyFingerprint = exports.noVerifyHeaders = exports.signatureHeader = void 0;
 const tslib_1 = require("tslib");
 const sshpk_1 = require("sshpk");
 const http_signature_1 = tslib_1.__importDefault(require("http-signature"));
@@ -14,8 +14,8 @@ const hopByHopHeaders = new Map([
     ['proxy-authenticate', true],
     ['proxy-authorization', true]
 ]);
-const signatureHeader = 'signature';
-exports.noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([signatureHeader]);
+exports.signatureHeader = 'signature';
+exports.noVerifyHeaders = Array.from(hopByHopHeaders.keys()).concat([exports.signatureHeader]);
 function publicKeyFingerprint(key) {
     try {
         return (0, sshpk_1.parseKey)(key).fingerprint('sha256').toString();
@@ -33,7 +33,7 @@ function sign(req, opts) {
     http_signature_1.default.sign(req, {
         key: opts.key,
         keyId: opts.keyId || (opts.pubKey ? publicKeyFingerprint(opts.pubKey) : ''),
-        authorizationHeaderName: signatureHeader,
+        authorizationHeaderName: exports.signatureHeader,
         headers: Object.keys(req.getHeaders())
             .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v))
             .concat(addParam)
@@ -42,7 +42,7 @@ function sign(req, opts) {
 exports.sign = sign;
 function verify(msg, opts) {
     try {
-        const parsed = http_signature_1.default.parseRequest(msg, { authorizationHeaderName: signatureHeader });
+        const parsed = http_signature_1.default.parseRequest(msg, { authorizationHeaderName: exports.signatureHeader });
         const pubKey = opts.publicKeys.get(parsed.keyId);
         if (!pubKey) {
             return { verified: false, error: 'no pub key found' };

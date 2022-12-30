@@ -2,9 +2,9 @@ import express, { Application, NextFunction, Request, RequestHandler, Response }
 import { sign } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
-import { Agent as HTTPAgent, ClientRequest } from 'http'
+import { Agent as HTTPAgent } from 'http'
 import { digest, restream } from './digest'
-import { newHTTPMessageLogger } from './log'
+import { consolelog, newHTTPMessageLogger } from './log'
 import { ulid } from 'ulid'
 import { Agent as HTTPSAgent } from 'https'
 require('express-async-errors')
@@ -15,25 +15,6 @@ function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
     res.sendStatus(500)
   }
   next(err)
-}
-
-function log (req: ClientRequest) {
-  req.on('response', (res) => {
-    res.on('close', function log () {
-      console.log({
-        request: {
-          method: req.method,
-          url: `${req.protocol}//${req.host}${req.path}`,
-          headers: req.getHeaders()
-        },
-        response: {
-          status: res.statusCode,
-          headers: res.headers,
-          trailers: res.trailers
-        }
-      })
-    })
-  })
 }
 
 interface AppOptions {
@@ -62,9 +43,9 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       }
       proxyReq.setHeader('x-request-id', ulid())
 
-      log(proxyReq)
-      sign(proxyReq, { key, pubKey })
+      consolelog(proxyReq)
       logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
+      sign(proxyReq, { key, pubKey })
     })
 
   const httpagent = new HTTPAgent({ keepAlive: true })
