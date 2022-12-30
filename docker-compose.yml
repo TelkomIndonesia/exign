@@ -1,7 +1,7 @@
 x-image:
   &image
   build: .
-  image: httpsig-frproxy:0.5.0
+  image: httpsig-frproxy:0.6.0
 
 x-script:
   &script
