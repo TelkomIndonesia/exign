@@ -139,9 +139,10 @@ function newHTTPMessageFinder(opts) {
                     const [key, value] = _c.value;
                     if (intermediate && (key.endsWith('-res-0') || key.endsWith('-res-3'))) {
                         yield new Promise((resolve, reject) => {
-                            intermediate === null || intermediate === void 0 ? void 0 : intermediate.on('close', resolve).on('error', reject).end();
+                            intermediate === null || intermediate === void 0 ? void 0 : intermediate.on('close', resolve).on('error', reject);
+                            intermediate === null || intermediate === void 0 ? void 0 : intermediate.end();
+                            intermediate = undefined;
                         });
-                        intermediate = undefined;
                         stream.write('\r\n');
                     }
                     const w = intermediate || stream;

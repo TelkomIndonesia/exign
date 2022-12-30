@@ -157,12 +157,10 @@ export function newHTTPMessageFinder (opts: newLogDBOptions) {
     for await (const [key, value] of db.iterator({ gt: query.id, lt: query.id + '_' })) {
       if (intermediate && (key.endsWith('-res-0') || key.endsWith('-res-3'))) {
         await new Promise((resolve, reject) => {
-          intermediate
-            ?.on('close', resolve)
-            .on('error', reject)
-            .end()
+          intermediate?.on('close', resolve).on('error', reject)
+          intermediate?.end()
+          intermediate = undefined
         })
-        intermediate = undefined
         stream.write('\r\n')
       }
 
