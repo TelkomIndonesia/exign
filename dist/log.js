@@ -83,6 +83,7 @@ function newHTTPMessageLogger(opts) {
             }; /* eslint-enable @typescript-eslint/no-explicit-any */
             req.write = wrapWriteEnd(req, req.write);
             req.end = wrapWriteEnd(req, req.end);
+            req.on('finish', () => db.put(`${id}-req-2`, Buffer.from('\r\n'))); // reserved for req trailers
             db.put(`${id}-req-0`, Buffer.from(`${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}\r\n` +
                 headersToString(req.getHeaders())));
             let j = 0;
@@ -136,13 +137,15 @@ function newHTTPMessageFinder(opts) {
             try {
                 for (var _b = tslib_1.__asyncValues(db.iterator({ gt: query.id, lt: query.id + '_' })), _c; _c = yield _b.next(), !_c.done;) {
                     const [key, value] = _c.value;
-                    if (decoder && (key.endsWith('-res-0') || key.endsWith('-res-2'))) {
-                        yield new Promise((resolve, reject) => {
-                            decoder === null || decoder === void 0 ? void 0 : decoder.on('close', resolve).on('error', reject).end();
-                        });
-                        decoder = undefined;
+                    if (key.endsWith('-req-2') || key.endsWith('-res-2')) {
+                        if (decoder) {
+                            yield new Promise((resolve, reject) => {
+                                decoder === null || decoder === void 0 ? void 0 : decoder.on('close', resolve).on('error', reject).end();
+                            });
+                            decoder = undefined;
+                        }
+                        stream.write('\r\n'); // add newline after body
                     }
-                    key.endsWith('-res-0') && stream.write('\r\n\r\n');
                     const w = decoder || stream;
                     w.write(value) || (yield new Promise(resolve => stream.on('drain', resolve)));
                     if ((fopts === null || fopts === void 0 ? void 0 : fopts.decodeBody) && key.endsWith('-0')) {
