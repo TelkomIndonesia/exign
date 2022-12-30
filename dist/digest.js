@@ -4,9 +4,25 @@ exports.restream = exports.digest = exports.formatHash = void 0;
 const tslib_1 = require("tslib");
 const crypto_1 = require("crypto");
 const promises_1 = require("fs/promises");
+const os_1 = require("os");
+const path_1 = require("path");
 const stream_1 = require("stream");
 const promises_2 = require("stream/promises");
-const util_1 = require("./util");
+const ulid_1 = require("ulid");
+function tmpFilename() {
+    const filepath = (0, path_1.resolve)((0, os_1.tmpdir)(), 'tmp-file-' + (0, ulid_1.ulid)());
+    const cleanup = function () {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            try {
+                yield (0, promises_1.rm)(filepath);
+            }
+            catch (err) {
+                console.log({ error: err, path: filepath, message: 'error_deleting_tmp_file' });
+            }
+        });
+    };
+    return { filepath, cleanup };
+}
 function formatHash(hash) {
     return 'SHA-256=' + hash.digest('base64').toString();
 }
@@ -35,7 +51,7 @@ function restream(input, opts) {
                     continue;
                 }
                 if (!tmpFile) {
-                    const { filepath, cleanup } = (0, util_1.tmpFilename)();
+                    const { filepath, cleanup } = tmpFilename();
                     [tmpFile, tmpFileCleanup] = [yield (0, promises_1.open)(filepath, 'w+'), cleanup];
                     yield tmpFile.write(Buffer.from(buffers));
                 }

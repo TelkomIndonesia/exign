@@ -21,8 +21,11 @@ export declare function newHTTPMessageLogger(opts: newLogDBOptions): {
 interface httpMessageQuery {
     id: string;
 }
+interface httpMesageFindOptions {
+    decodeBody?: boolean;
+}
 export declare function newHTTPMessageFinder(opts: newLogDBOptions): {
-    (query: httpMessageQuery): Promise<PassThrough | undefined>;
+    (query: httpMessageQuery, fopts?: httpMesageFindOptions): Promise<PassThrough | undefined>;
     dbs: Map<string, Level<string, Buffer>>;
 };
 export {};

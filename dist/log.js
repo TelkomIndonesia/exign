@@ -49,14 +49,21 @@ function dbName(date) {
     date = date || new Date();
     return `${date.getFullYear()}-${pad(date.getMonth() + 1, 2)}-${date.getDate()}`;
 }
+const databases = new Map();
 function newLogDB(date, opts) {
-    return new level_1.Level((0, path_1.resolve)(opts.directory, dbName(date)), { valueEncoding: 'buffer' });
+    const name = dbName(date);
+    let db = databases.get(name);
+    if (!db) {
+        db = new level_1.Level((0, path_1.resolve)(opts.directory, name), { valueEncoding: 'buffer' });
+        databases.set(name, db);
+    }
+    return db;
 }
 function headersToString(headers) {
     return Object.entries(headers)
         .reduce((str, [name, value]) => {
         return str + name + ': ' + (Array.isArray(value) ? value.join(',') : value + '\r\n');
-    }, '');
+    }, '') + '\r\n';
 }
 function newHTTPMessageLogger(opts) {
     const db = newLogDB(new Date(), opts);
@@ -70,29 +77,25 @@ function newHTTPMessageLogger(opts) {
             let i = 0;
             const wrapWriteEnd = function wrapWriteEnd(req, fn) {
                 return function wrapped(chunk, ...args) {
-                    chunk && db.put(`${id}-req-2-${pad(i++, 16)}`, chunk);
+                    chunk && db.put(`${id}-req-1-${pad(i++, 16)}`, chunk);
                     return fn.apply(req, [chunk, ...args]);
                 };
             }; /* eslint-enable @typescript-eslint/no-explicit-any */
             req.write = wrapWriteEnd(req, req.write);
             req.end = wrapWriteEnd(req, req.end);
-            db.batch()
-                .put(`${id}-req-0`, Buffer.from(`${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`))
-                .put(`${id}-req-1`, Buffer.from(headersToString(req.getHeaders())))
-                .write();
+            db.put(`${id}-req-0`, Buffer.from(`${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}\r\n` +
+                headersToString(req.getHeaders())));
             let j = 0;
             const res = yield new Promise((resolve, reject) => req
                 .once('error', reject)
                 .once('response', (res) => {
-                res.on('data', (chunk) => db.put(`${id}-res-2-${pad(j++, 16)}`, chunk));
+                res.on('data', (chunk) => db.put(`${id}-res-1-${pad(j++, 16)}`, chunk));
                 resolve(res);
             }));
-            db.batch()
-                .put(`${id}-res-0`, Buffer.from(`HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}`))
-                .put(`${id}-res-1`, Buffer.from(headersToString(res.headers)))
-                .write();
+            db.put(`${id}-res-0`, Buffer.from(`HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}\r\n` +
+                headersToString(res.headers)));
             res.on('end', () => {
-                res.trailers && db.put(`${id}-res-3`, Buffer.from(headersToString(res.trailers)));
+                res.trailers && db.put(`${id}-res-2`, Buffer.from(headersToString(res.trailers)));
             });
         });
     };
@@ -101,15 +104,16 @@ function newHTTPMessageLogger(opts) {
 }
 exports.newHTTPMessageLogger = newHTTPMessageLogger;
 function newHTTPMessageFinder(opts) {
-    const dbs = new Map();
     const dbDates = (0, promises_1.readdir)(opts.directory, { withFileTypes: true })
         .then(entries => entries
-        .filter(v => v.isDirectory())
         .reduce((arr, v) => {
+        if (!v.isDirectory()) {
+            return arr;
+        }
         arr.push(new Date(Date.parse(v.name)));
         return arr;
     }, []));
-    const fn = function findHTTPMessage(query) {
+    const fn = function findHTTPMessage(query, fopts) {
         var e_1, _a;
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const date = new Date((0, ulid_1.decodeTime)(query.id));
@@ -126,30 +130,22 @@ function newHTTPMessageFinder(opts) {
             if (!dbDate) {
                 return;
             }
-            const name = dbName(dbDate);
-            let db = dbs.get(name);
-            if (!db) {
-                db = newLogDB(dbDate, opts);
-                dbs.set(name, db);
-            }
+            const db = newLogDB(dbDate, opts);
             const stream = new stream_1.PassThrough();
-            let intermediate;
+            let decoder;
             try {
                 for (var _b = tslib_1.__asyncValues(db.iterator({ gt: query.id, lt: query.id + '_' })), _c; _c = yield _b.next(), !_c.done;) {
                     const [key, value] = _c.value;
-                    if (intermediate && (key.endsWith('-res-0') || key.endsWith('-res-3'))) {
+                    if (decoder && (key.endsWith('-res-0') || key.endsWith('-res-2'))) {
                         yield new Promise((resolve, reject) => {
-                            intermediate === null || intermediate === void 0 ? void 0 : intermediate.on('close', resolve).on('error', reject);
-                            intermediate === null || intermediate === void 0 ? void 0 : intermediate.end();
-                            intermediate = undefined;
+                            decoder === null || decoder === void 0 ? void 0 : decoder.on('close', resolve).on('error', reject).end();
                         });
-                        stream.write('\r\n');
+                        decoder = undefined;
                     }
-                    const w = intermediate || stream;
-                    const ok = w.write(value);
-                    ok || (yield new Promise(resolve => stream.on('drain', resolve)));
-                    intermediate || w.write('\r\n');
-                    if (key.endsWith('-req-1') || key.endsWith('-res-1')) {
+                    key.endsWith('-res-0') && stream.write('\r\n\r\n');
+                    const w = decoder || stream;
+                    w.write(value) || (yield new Promise(resolve => stream.on('drain', resolve)));
+                    if ((fopts === null || fopts === void 0 ? void 0 : fopts.decodeBody) && key.endsWith('-0')) {
                         const enc = value.toString().split('\r\n').reduce((s, v) => {
                             const [name, value] = v.split(':', 2);
                             if (name.trim().toLowerCase() !== 'content-encoding') {
@@ -159,16 +155,17 @@ function newHTTPMessageFinder(opts) {
                         });
                         switch (enc) {
                             case 'gzip':
-                                intermediate = (0, zlib_1.createGunzip)();
+                                decoder = (0, zlib_1.createGunzip)();
                                 break;
                             case 'br':
-                                intermediate = (0, zlib_1.createBrotliDecompress)();
+                                decoder = (0, zlib_1.createBrotliDecompress)();
                                 break;
                             case 'deflate':
-                                intermediate = (0, zlib_1.createInflate)();
+                                decoder = (0, zlib_1.createInflate)();
                                 break;
                         }
-                        intermediate && intermediate.pipe(stream, { end: false });
+                        decoder && decoder.pipe(stream, { end: false });
+                        stream.on('error', () => decoder === null || decoder === void 0 ? void 0 : decoder.destroy());
                     }
                 }
             }
@@ -183,7 +180,7 @@ function newHTTPMessageFinder(opts) {
             return stream;
         });
     };
-    fn.dbs = dbs;
+    fn.dbs = databases;
     return fn;
 }
 exports.newHTTPMessageFinder = newHTTPMessageFinder;

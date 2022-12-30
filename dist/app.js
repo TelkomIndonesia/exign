@@ -10,7 +10,7 @@ const http_1 = require("http");
 const digest_1 = require("./digest");
 const log_1 = require("./log");
 const https_1 = require("https");
-require('express-async-errors');
+const error_1 = require("./error");
 function newSignatureProxyHandler(opts) {
     const key = opts.signature.keyfile;
     const pubKey = opts.signature.pubkeyfile;
@@ -51,17 +51,10 @@ function newSignatureProxyHandler(opts) {
         });
     };
 }
-function errorMW(err, _, res, next) {
-    if (err) {
-        console.log({ error: err });
-        res.sendStatus(500);
-    }
-    next(err);
-}
 function newApp(opts) {
     const app = (0, express_1.default)();
     app.all('/*', newSignatureProxyHandler(opts));
-    app.use(errorMW);
+    app.use(error_1.errorMW);
     return app;
 }
 exports.newApp = newApp;

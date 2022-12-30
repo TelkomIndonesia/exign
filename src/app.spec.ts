@@ -1,7 +1,6 @@
 import request from 'supertest'
 import * as httpSignature from 'http-signature'
 import nock from 'nock'
-import { config } from './config'
 import { ClientRequest } from 'http'
 import { noVerifyHeaders } from './signature'
 import { newApp } from './app'
@@ -45,7 +44,7 @@ function newTestApp (): { app: Application } {
   const app = newApp({
     hostmap: new Map<string, string>(),
     doubleDashDomains: ['domain.test'],
-    clientBodyBufferSize: config.clientBodyBufferSize,
+    clientBodyBufferSize: 32,
     signature: {
       keyfile: testKey.private,
       pubkeyfile: testKey.public

@@ -1,8 +1,22 @@
 import { createHash, Hash } from 'crypto'
-import { FileHandle, open } from 'fs/promises'
+import { FileHandle, open, rm } from 'fs/promises'
+import { tmpdir } from 'os'
+import { resolve } from 'path'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
-import { tmpFilename } from './util'
+import { ulid } from 'ulid'
+
+function tmpFilename (): { filepath: string, cleanup: () => Promise<void> } {
+  const filepath = resolve(tmpdir(), 'tmp-file-' + ulid())
+  const cleanup = async function () {
+    try {
+      await rm(filepath)
+    } catch (err) {
+      console.log({ error: err, path: filepath, message: 'error_deleting_tmp_file' })
+    }
+  }
+  return { filepath, cleanup }
+}
 
 export function formatHash (hash: Hash) {
   return 'SHA-256=' + hash.digest('base64').toString()

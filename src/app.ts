@@ -6,7 +6,7 @@ import { Agent as HTTPAgent } from 'http'
 import { digest, restream } from './digest'
 import { attachID, consoleLog, newHTTPMessageLogger } from './log'
 import { Agent as HTTPSAgent } from 'https'
-require('express-async-errors')
+import { errorMW } from './error'
 
 interface AppOptions {
   signature: {
@@ -66,14 +66,6 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       },
       err => next(err))
   }
-}
-
-function errorMW (err: Error, _: Request, res: Response, next: NextFunction) {
-  if (err) {
-    console.log({ error: err })
-    res.sendStatus(500)
-  }
-  next(err)
 }
 
 export function newApp (opts: AppOptions): Application {

@@ -50,18 +50,25 @@ function dbName (date?: Date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1, 2)}-${date.getDate()}`
 }
 
+const databases = new Map<string, Level<string, Buffer>>()
 interface newLogDBOptions {
   directory: string
 }
 function newLogDB (date: Date, opts: newLogDBOptions) {
-  return new Level<string, Buffer>(resolve(opts.directory, dbName(date)), { valueEncoding: 'buffer' })
+  const name = dbName(date)
+  let db = databases.get(name)
+  if (!db) {
+    db = new Level<string, Buffer>(resolve(opts.directory, name), { valueEncoding: 'buffer' })
+    databases.set(name, db)
+  }
+  return db
 }
 
 function headersToString (headers: IncomingHttpHeaders | OutgoingHttpHeaders) {
   return Object.entries(headers)
     .reduce((str, [name, value]) => {
       return str + name + ': ' + (Array.isArray(value) ? value.join(',') : value + '\r\n')
-    }, '')
+    }, '') + '\r\n'
 }
 
 interface ClientRequestLine {
@@ -79,34 +86,34 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
     /* eslint-disable @typescript-eslint/no-explicit-any */
     let i = 0; const wrapWriteEnd = function wrapWriteEnd (req: ClientRequest, fn: (chunk: any, ...args: any) => any) {
       return function wrapped (chunk: any, ...args: any) {
-        chunk && db.put(`${id}-req-2-${pad(i++, 16)}`, chunk)
+        chunk && db.put(`${id}-req-1-${pad(i++, 16)}`, chunk)
         return fn.apply(req, [chunk, ...args])
       }
     } /* eslint-enable @typescript-eslint/no-explicit-any */
     req.write = wrapWriteEnd(req, req.write)
     req.end = wrapWriteEnd(req, req.end)
 
-    db.batch()
-      .put(`${id}-req-0`, Buffer.from(`${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`))
-      .put(`${id}-req-1`, Buffer.from(headersToString(req.getHeaders())))
-      .write()
+    db.put(`${id}-req-0`, Buffer.from(
+      `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}\r\n` +
+        headersToString(req.getHeaders())
+    ))
 
     let j = 0
     const res = await new Promise<IncomingMessage>((resolve, reject) => req
       .once('error', reject)
       .once('response', (res) => {
-        res.on('data', (chunk) => db.put(`${id}-res-2-${pad(j++, 16)}`, chunk))
+        res.on('data', (chunk) => db.put(`${id}-res-1-${pad(j++, 16)}`, chunk))
         resolve(res)
       })
     )
 
-    db.batch()
-      .put(`${id}-res-0`, Buffer.from(`HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}`))
-      .put(`${id}-res-1`, Buffer.from(headersToString(res.headers)))
-      .write()
+    db.put(`${id}-res-0`, Buffer.from(
+        `HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}\r\n` +
+        headersToString(res.headers)
+    ))
 
     res.on('end', () => {
-      res.trailers && db.put(`${id}-res-3`, Buffer.from(headersToString(res.trailers)))
+      res.trailers && db.put(`${id}-res-2`, Buffer.from(headersToString(res.trailers)))
     })
   }
   fn.db = db
@@ -117,18 +124,23 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
 interface httpMessageQuery {
   id: string
 }
+interface httpMesageFindOptions {
+  decodeBody?: boolean
+}
 export function newHTTPMessageFinder (opts: newLogDBOptions) {
-  const dbs = new Map<string, Level<string, Buffer>>()
   const dbDates = readdir(opts.directory, { withFileTypes: true })
     .then(entries => entries
-      .filter(v => v.isDirectory())
       .reduce((arr, v) => {
+        if (!v.isDirectory()) {
+          return arr
+        }
+
         arr.push(new Date(Date.parse(v.name)))
         return arr
       }, [] as Date[])
     )
 
-  const fn = async function findHTTPMessage (query: httpMessageQuery) {
+  const fn = async function findHTTPMessage (query: httpMessageQuery, fopts?: httpMesageFindOptions) {
     const date = new Date(decodeTime(query.id))
 
     let dbDate: Date | undefined
@@ -146,30 +158,23 @@ export function newHTTPMessageFinder (opts: newLogDBOptions) {
       return
     }
 
-    const name = dbName(dbDate); let db = dbs.get(name)
-    if (!db) {
-      db = newLogDB(dbDate, opts)
-      dbs.set(name, db)
-    }
+    const db = newLogDB(dbDate, opts)
 
     const stream = new PassThrough()
-    let intermediate: Writable | undefined
+    let decoder: Writable | undefined
     for await (const [key, value] of db.iterator({ gt: query.id, lt: query.id + '_' })) {
-      if (intermediate && (key.endsWith('-res-0') || key.endsWith('-res-3'))) {
+      if (decoder && (key.endsWith('-res-0') || key.endsWith('-res-2'))) {
         await new Promise((resolve, reject) => {
-          intermediate?.on('close', resolve).on('error', reject)
-          intermediate?.end()
-          intermediate = undefined
+          decoder?.on('close', resolve).on('error', reject).end()
         })
-        stream.write('\r\n')
+        decoder = undefined
       }
 
-      const w = intermediate || stream
-      const ok = w.write(value)
-      ok || await new Promise(resolve => stream.on('drain', resolve))
-      intermediate || w.write('\r\n')
+      key.endsWith('-res-0') && stream.write('\r\n\r\n')
+      const w = decoder || stream
+      w.write(value) || await new Promise(resolve => stream.on('drain', resolve))
 
-      if (key.endsWith('-req-1') || key.endsWith('-res-1')) {
+      if (fopts?.decodeBody && key.endsWith('-0')) {
         const enc = value.toString().split('\r\n').reduce((s, v) => {
           const [name, value] = v.split(':', 2)
           if (name.trim().toLowerCase() !== 'content-encoding') {
@@ -179,20 +184,21 @@ export function newHTTPMessageFinder (opts: newLogDBOptions) {
         })
         switch (enc) {
           case 'gzip':
-            intermediate = createGunzip(); break
+            decoder = createGunzip(); break
           case 'br':
-            intermediate = createBrotliDecompress(); break
+            decoder = createBrotliDecompress(); break
           case 'deflate':
-            intermediate = createInflate(); break
+            decoder = createInflate(); break
         }
-        intermediate && intermediate.pipe(stream, { end: false })
+        decoder && decoder.pipe(stream, { end: false })
+        stream.on('error', () => decoder?.destroy())
       }
     }
     stream.end()
 
     return stream
   }
-  fn.dbs = dbs
+  fn.dbs = databases
 
   return fn
 }

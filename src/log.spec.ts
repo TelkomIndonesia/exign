@@ -24,12 +24,8 @@ test('find message', async function () {
   await new Promise((resolve, reject) => req.on('error', reject)
     .on('response', res => res.on('close', resolve).resume()))
 
-  let i = 0; for await (const value of logMessage.db.values()) { i += value.length }
-  expect(i).toBeGreaterThan(0)
-  await logMessage.db.close()
-
   const find = newHTTPMessageFinder(opts)
-  const readable = await find({ id: req.getHeader(requestIDHeader) as string })
+  const readable = await find({ id: req.getHeader(requestIDHeader) as string }, { decodeBody: true })
   expect(readable).toBeTruthy()
   if (!readable) return
 
