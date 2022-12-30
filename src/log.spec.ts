@@ -11,7 +11,8 @@ test('find message', async function () {
     path: '/requests',
     method: 'POST',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
+      'accept-encoding': 'gzip'
     }
   })
   const logMessage = newHTTPMessageLogger(opts)
@@ -38,8 +39,6 @@ test('find message', async function () {
   expect(record).toContain(req.getHeader(requestIDHeader))
   console.log(record)
 
-  for (const db of find.dbs.values()) {
-    await db.close()
-  }
+  for (const db of find.dbs.values()) await db.close()
   await rm(opts.directory, { recursive: true, force: true })
 }, 10000)

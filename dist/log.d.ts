@@ -1,5 +1,6 @@
 /// <reference types="node" />
 /// <reference types="node" />
+/// <reference types="node" />
 import { ClientRequest } from 'http';
 import { Level } from 'level';
 import { PassThrough } from 'stream';
@@ -15,13 +16,13 @@ interface ClientRequestLine {
 }
 export declare function newHTTPMessageLogger(opts: newLogDBOptions): {
     (req: ClientRequest, reqLine: ClientRequestLine): Promise<void>;
-    db: Level<string, string>;
+    db: Level<string, Buffer>;
 };
 interface httpMessageQuery {
     id: string;
 }
 export declare function newHTTPMessageFinder(opts: newLogDBOptions): {
     (query: httpMessageQuery): Promise<PassThrough | undefined>;
-    dbs: Map<string, Level<string, string>>;
+    dbs: Map<string, Level<string, Buffer>>;
 };
 export {};

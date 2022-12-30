@@ -10,6 +10,7 @@ const flat_1 = require("flat");
 const ulid_1 = require("ulid");
 const promises_1 = require("fs/promises");
 const stream_1 = require("stream");
+const zlib_1 = require("zlib");
 exports.requestIDHeader = 'x-request-id';
 function attachID(req) {
     req.setHeader(exports.requestIDHeader, (0, ulid_1.ulid)());
@@ -49,7 +50,7 @@ function dbName(date) {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1, 2)}-${date.getDate()}`;
 }
 function newLogDB(date, opts) {
-    return new level_1.Level((0, path_1.resolve)(opts.directory, dbName(date)));
+    return new level_1.Level((0, path_1.resolve)(opts.directory, dbName(date)), { valueEncoding: 'buffer' });
 }
 function headersToString(headers) {
     return Object.entries(headers)
@@ -60,16 +61,11 @@ function headersToString(headers) {
 function newHTTPMessageLogger(opts) {
     const db = newLogDB(new Date(), opts);
     const fn = function logHTTPMessage(req, reqLine) {
-        var e_1, _a;
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const id = req.getHeader(exports.requestIDHeader);
             if (!id) {
                 return;
             }
-            db.batch()
-                .put(`${id}-req-0`, `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`)
-                .put(`${id}-req-1`, headersToString(req.getHeaders()))
-                .write();
             /* eslint-disable @typescript-eslint/no-explicit-any */
             let i = 0;
             const wrapWriteEnd = function wrapWriteEnd(req, fn) {
@@ -80,26 +76,24 @@ function newHTTPMessageLogger(opts) {
             }; /* eslint-enable @typescript-eslint/no-explicit-any */
             req.write = wrapWriteEnd(req, req.write);
             req.end = wrapWriteEnd(req, req.end);
-            const res = yield new Promise((resolve, reject) => req.once('response', resolve).once('error', reject));
             db.batch()
-                .put(`${id}-res-0`, `HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}`)
-                .put(`${id}-res-1`, headersToString(res.headers))
+                .put(`${id}-req-0`, Buffer.from(`${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}`))
+                .put(`${id}-req-1`, Buffer.from(headersToString(req.getHeaders())))
                 .write();
             let j = 0;
-            try {
-                for (var res_1 = tslib_1.__asyncValues(res), res_1_1; res_1_1 = yield res_1.next(), !res_1_1.done;) {
-                    const chunk = res_1_1.value;
-                    db.put(`${id}-res-2-${pad(j++, 16)}`, chunk);
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (res_1_1 && !res_1_1.done && (_a = res_1.return)) yield _a.call(res_1);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            res.trailers && db.put(`${id}-res-3`, headersToString(res.trailers));
+            const res = yield new Promise((resolve, reject) => req
+                .once('error', reject)
+                .once('response', (res) => {
+                res.on('data', (chunk) => db.put(`${id}-res-2-${pad(j++, 16)}`, chunk));
+                resolve(res);
+            }));
+            db.batch()
+                .put(`${id}-res-0`, Buffer.from(`HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}`))
+                .put(`${id}-res-1`, Buffer.from(headersToString(res.headers)))
+                .write();
+            res.on('end', () => {
+                res.trailers && db.put(`${id}-res-3`, Buffer.from(headersToString(res.trailers)));
+            });
         });
     };
     fn.db = db;
@@ -116,7 +110,7 @@ function newHTTPMessageFinder(opts) {
         return arr;
     }, []));
     const fn = function findHTTPMessage(query) {
-        var e_2, _a;
+        var e_1, _a;
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const date = new Date((0, ulid_1.decodeTime)(query.id));
             let dbDate;
@@ -139,22 +133,50 @@ function newHTTPMessageFinder(opts) {
                 dbs.set(name, db);
             }
             const stream = new stream_1.PassThrough();
+            let intermediate;
             try {
                 for (var _b = tslib_1.__asyncValues(db.iterator({ gt: query.id, lt: query.id + '_' })), _c; _c = yield _b.next(), !_c.done;) {
-                    const [, value] = _c.value;
-                    const ok = stream.write(value);
-                    if (!ok) {
-                        yield new Promise(resolve => stream.on('drain', resolve));
+                    const [key, value] = _c.value;
+                    if (intermediate && (key.endsWith('-res-0') || key.endsWith('-res-3'))) {
+                        yield new Promise((resolve, reject) => {
+                            intermediate === null || intermediate === void 0 ? void 0 : intermediate.on('close', resolve).on('error', reject).end();
+                        });
+                        intermediate = undefined;
+                        stream.write('\r\n');
                     }
-                    stream.write('\r\n');
+                    const w = intermediate || stream;
+                    const ok = w.write(value);
+                    ok || (yield new Promise(resolve => stream.on('drain', resolve)));
+                    intermediate || w.write('\r\n');
+                    if (key.endsWith('-req-1') || key.endsWith('-res-1')) {
+                        const enc = value.toString().split('\r\n').reduce((s, v) => {
+                            const [name, value] = v.split(':', 2);
+                            if (name.trim().toLowerCase() !== 'content-encoding') {
+                                return s;
+                            }
+                            return value.trim().toLowerCase();
+                        });
+                        switch (enc) {
+                            case 'gzip':
+                                intermediate = (0, zlib_1.createGunzip)();
+                                break;
+                            case 'br':
+                                intermediate = (0, zlib_1.createBrotliDecompress)();
+                                break;
+                            case 'deflate':
+                                intermediate = (0, zlib_1.createInflate)();
+                                break;
+                        }
+                        intermediate && intermediate.pipe(stream, { end: false });
+                    }
                 }
             }
-            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
             finally {
                 try {
                     if (_c && !_c.done && (_a = _b.return)) yield _a.call(_b);
                 }
-                finally { if (e_2) throw e_2.error; }
+                finally { if (e_1) throw e_1.error; }
             }
             stream.end();
             return stream;
