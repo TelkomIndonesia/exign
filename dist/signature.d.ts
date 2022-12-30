@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import { ClientRequest, IncomingMessage } from 'node:http';
+export declare const signatureHeader = "signature";
 export declare const noVerifyHeaders: string[];
 export declare function publicKeyFingerprint(key: string): string;
 interface SignOptions {

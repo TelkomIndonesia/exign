@@ -5,6 +5,7 @@ import { pki } from 'node-forge'
 import { newApp } from './app'
 import { createCertPair, loadCertPairSync } from './certificate'
 import { config } from './config'
+import { newLogApp } from './log-app'
 require('express-async-errors')
 
 const { key: caKey, cert: caCert } = loadCertPairSync(config.transport.caKeyfile, config.transport.caCertfile)
@@ -30,3 +31,7 @@ http.createServer(app)
   .listen(80, () => console.log('HTTP Server running on port 80'))
 https.createServer(httpsServerOptions, app)
   .listen(443, () => console.log('HTTPS Server running on port 443'))
+
+const logapp = newLogApp({ logdb: config.logdb })
+http.createServer(logapp)
+  .listen(3000, () => console.log('HTTP Server running on port 3000'))

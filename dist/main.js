@@ -8,6 +8,7 @@ const node_forge_1 = require("node-forge");
 const app_1 = require("./app");
 const certificate_1 = require("./certificate");
 const config_1 = require("./config");
+const log_app_1 = require("./log-app");
 require('express-async-errors');
 const { key: caKey, cert: caCert } = (0, certificate_1.loadCertPairSync)(config_1.config.transport.caKeyfile, config_1.config.transport.caCertfile);
 const { key: localhostKey, cert: localhostCert } = (0, certificate_1.createCertPair)('localhost', { caKey, caCert });
@@ -31,4 +32,7 @@ http_1.default.createServer(app)
     .listen(80, () => console.log('HTTP Server running on port 80'));
 https_1.default.createServer(httpsServerOptions, app)
     .listen(443, () => console.log('HTTPS Server running on port 443'));
+const logapp = (0, log_app_1.newLogApp)({ logdb: config_1.config.logdb });
+http_1.default.createServer(logapp)
+    .listen(3000, () => console.log('HTTP Server running on port 3000'));
 //# sourceMappingURL=main.js.map

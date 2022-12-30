@@ -11,4 +11,7 @@ export declare const config: {
         caKeyfile: string;
         caCertfile: string;
     };
+    logdb: {
+        directory: string;
+    };
 };
