@@ -9,11 +9,12 @@ import { readdir } from 'fs/promises'
 import { PassThrough, Writable } from 'stream'
 import { createBrotliDecompress, createGunzip, createInflate } from 'zlib'
 
-export const requestIDHeader = 'x-request-id'
+export const messageIDHeader = 'x-message-id'
 
 export function attachID (req: ClientRequest) {
-  req.setHeader(requestIDHeader, ulid())
-  return req
+  const id = ulid()
+  req.setHeader(messageIDHeader, id)
+  return id
 }
 
 export function consoleLog (req: ClientRequest) {
@@ -78,7 +79,7 @@ interface ClientRequestLine {
 export function newHTTPMessageLogger (opts: newLogDBOptions) {
   const db = newLogDB(new Date(), opts)
   const fn = async function logHTTPMessage (req: ClientRequest, reqLine: ClientRequestLine) {
-    const id = req.getHeader(requestIDHeader)
+    const id = req.getHeader(messageIDHeader)
     if (!id) {
       return
     }
@@ -99,8 +100,7 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
         headersToString(req.getHeaders())
     ))
 
-    let j = 0
-    const res = await new Promise<IncomingMessage>((resolve, reject) => req
+    let j = 0; const res = await new Promise<IncomingMessage>((resolve, reject) => req
       .once('error', reject)
       .once('response', (res) => {
         res.on('data', (chunk) => db.put(`${id}-res-1-${pad(j++, 16)}`, chunk))

@@ -16,11 +16,11 @@ function newSignatureProxyHandler(opts) {
     const pubKey = opts.signature.pubkeyfile;
     const logMessage = (0, log_1.newHTTPMessageLogger)(opts.logdb);
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
-        .on('proxyReq', function onProxyReq(proxyReq, req) {
+        .on('proxyReq', function onProxyReq(proxyReq, req, res) {
         if (proxyReq.getHeader('content-length') === '0') {
             proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
         }
-        (0, log_1.attachID)(proxyReq);
+        res.setHeader(log_1.messageIDHeader, (0, log_1.attachID)(proxyReq));
         (0, log_1.consoleLog)(proxyReq);
         logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
         (0, signature_1.sign)(proxyReq, { key, pubKey });

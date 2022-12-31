@@ -4,7 +4,7 @@ import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { Agent as HTTPAgent } from 'http'
 import { digest, restream } from './digest'
-import { attachID, consoleLog, newHTTPMessageLogger } from './log'
+import { attachID, consoleLog, messageIDHeader, newHTTPMessageLogger } from './log'
 import { Agent as HTTPSAgent } from 'https'
 import { errorMW } from './error'
 
@@ -28,12 +28,12 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
   const logMessage = newHTTPMessageLogger(opts.logdb)
 
   const proxy = createProxyServer({ ws: true })
-    .on('proxyReq', function onProxyReq (proxyReq, req) {
+    .on('proxyReq', function onProxyReq (proxyReq, req, res) {
       if (proxyReq.getHeader('content-length') === '0') {
         proxyReq.removeHeader('content-length') // some reverse proxy drop 'content-length' when it is zero
       }
 
-      attachID(proxyReq)
+      res.setHeader(messageIDHeader, attachID(proxyReq))
       consoleLog(proxyReq)
       logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
       sign(proxyReq, { key, pubKey })
