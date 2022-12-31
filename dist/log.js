@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.newHTTPMessageFinder = exports.newHTTPMessageLogger = exports.consoleLog = exports.attachID = exports.requestIDHeader = void 0;
+exports.newHTTPMessageFinder = exports.newHTTPMessageLogger = exports.consoleLog = exports.attachID = exports.messageIDHeader = void 0;
 const tslib_1 = require("tslib");
 const level_1 = require("level");
 const path_1 = require("path");
@@ -11,10 +11,11 @@ const ulid_1 = require("ulid");
 const promises_1 = require("fs/promises");
 const stream_1 = require("stream");
 const zlib_1 = require("zlib");
-exports.requestIDHeader = 'x-request-id';
+exports.messageIDHeader = 'x-message-id';
 function attachID(req) {
-    req.setHeader(exports.requestIDHeader, (0, ulid_1.ulid)());
-    return req;
+    const id = (0, ulid_1.ulid)();
+    req.setHeader(exports.messageIDHeader, id);
+    return id;
 }
 exports.attachID = attachID;
 function consoleLog(req) {
@@ -69,7 +70,7 @@ function newHTTPMessageLogger(opts) {
     const db = newLogDB(new Date(), opts);
     const fn = function logHTTPMessage(req, reqLine) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const id = req.getHeader(exports.requestIDHeader);
+            const id = req.getHeader(exports.messageIDHeader);
             if (!id) {
                 return;
             }
