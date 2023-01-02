@@ -24,7 +24,7 @@ x-dnsmasq:
     - --no-resolv
     - --addn-hosts=/src/config/hosts
 
-version: "3.9"
+version: "3.0"
 services:
   init:
     <<: *script
