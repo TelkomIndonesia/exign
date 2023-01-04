@@ -6,6 +6,7 @@ import { newApp } from './app'
 import { createCertPair, loadCertPairSync } from './certificate'
 import { config } from './config'
 import { newLogApp } from './log-app'
+import { newSocks5Server } from './socks5'
 require('express-async-errors')
 
 const { key: caKey, cert: caCert } = loadCertPairSync(config.transport.caKeyfile, config.transport.caCertfile)
@@ -31,6 +32,10 @@ http.createServer(app)
   .listen(80, () => console.log('HTTP Server running on port 80'))
 https.createServer(httpsServerOptions, app)
   .listen(443, () => console.log('HTTPS Server running on port 443'))
+
+newSocks5Server(config).listen(1080, '0.0.0.0', function () {
+  console.log('SOCKS5 Server listening on port 1080')
+})
 
 const logapp = newLogApp({ logdb: config.logdb })
 http.createServer(logapp)

@@ -60,6 +60,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "1080:1080"
       - "3000:3000"
     volumes:
       - ./config:/src/config
@@ -87,23 +88,11 @@ services:
       - --server=8.8.4.4
       - --server=1.1.1.1
 
-  socks5:
-    <<: *image
-    restart: unless-stopped
-    depends_on:
-      - frproxy
-    environment:
-      PROXY_PORT: 1080
-    ports:
-      - 1080:1080
-    volumes:
-      - ./config:/src/config
-    entrypoint: [ ./scripts/append-hosts.sh, socks5 ]
-
   connection-test:
     <<: *script
     depends_on: [ frproxy ]
-    network_mode: service:socks5
     environment:
-      SOCKS5_PROXY_ENDPOINT: socks5:1080
-    entrypoint: [ ./scripts/connection-test.sh ]
+      SOCKS5_PROXY_ENDPOINT: frproxy:1080
+      FRPROXY_HOSTNAME: frproxy
+    volumes: [ ./config:/src/config ]
+    entrypoint: [ ./scripts/append-hosts.sh, ./scripts/connection-test.sh ]
