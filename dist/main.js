@@ -46,12 +46,22 @@ function startServers() {
             .listen(3000, () => console.log('[INFO] HTTP Config Server running on port 3000'));
     });
 }
-function main() {
+function main(args) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        yield (0, config_1.generatePKIs)();
-        yield (0, config_1.downloadRemoteConfigs)();
-        startServers();
+        if (args.length > 1) {
+            return console.error('Invalid arguments.');
+        }
+        if (args.length > 0) {
+            if (args[0] !== '--with-init' && args[0] !== 'init') {
+                return console.error('Invalid arguments.');
+            }
+            yield (0, config_1.generatePKIs)();
+            yield (0, config_1.downloadRemoteConfigs)();
+        }
+        if (args.length === 0 || args[0] !== 'init') {
+            startServers();
+        }
     });
 }
-main();
+main(process.argv.slice(2));
 //# sourceMappingURL=main.js.map

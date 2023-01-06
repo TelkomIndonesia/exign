@@ -48,10 +48,23 @@ async function startServers () {
     .listen(3000, () => console.log('[INFO] HTTP Config Server running on port 3000'))
 }
 
-async function main () {
-  await generatePKIs()
-  await downloadRemoteConfigs()
-  startServers()
+async function main (args:string[]) {
+  if (args.length > 1) {
+    return console.error('Invalid arguments.')
+  }
+
+  if (args.length > 0) {
+    if (args[0] !== '--with-init' && args[0] !== 'init') {
+      return console.error('Invalid arguments.')
+    }
+
+    await generatePKIs()
+    await downloadRemoteConfigs()
+  }
+
+  if (args.length === 0 || args[0] !== 'init') {
+    startServers()
+  }
 }
 
-main()
+main(process.argv.slice(2))

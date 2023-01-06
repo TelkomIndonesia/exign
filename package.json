@@ -8,8 +8,11 @@
     "httpsig-frproxy": "./dist/main.js"
   },
   "scripts": {
-    "build": "rimraf dist && npx tsc",
+    "prebuild": "rimraf dist",
+    "build": "npx tsc",
+    "preserver": "node dist/main.js init",
     "server": "node dist/main.js",
+    "preserver-dev":"ts-node --files src/main.ts init",
     "server-dev": "ts-node --files src/main.ts",
     "test": "jest"
   },
