@@ -41,9 +41,17 @@ services:
       - "3000:3000"
     volumes:
       - ./config:/src/config
-
+    healthcheck: 
+      test: [CMD, curl, -s, "localhost:3000/index.html"]
+      start_period: 10s
+      interval: 3s
+      retries: 100
+      
   dnsmasq:
     <<: *image
+    depends_on:
+      frproxy:
+        condition: service_healthy
     restart: unless-stopped
     ports:
       - "53:53"
@@ -64,6 +72,9 @@ services:
 
   connection-test:
     <<: *script
+    depends_on:
+      frproxy:
+        condition: service_healthy
     environment:
       SOCKS5_PROXY_ENDPOINT: frproxy:1080
       FRPROXY_HOSTNAME: frproxy
