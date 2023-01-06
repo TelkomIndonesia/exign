@@ -34,6 +34,9 @@ const config = {
     },
     logdb: {
         directory: process.env.FRPROXY_LOGDB_DIRECTORY || './logs'
+    },
+    dns: {
+        resolver: process.env.FRPROXY_DNS_RESOLVER || '1.1.1.1'
     }
 };
 function hostmap(str) {
@@ -71,7 +74,8 @@ function newAppConfig() {
         },
         logdb: {
             directory: dir(config.logdb.directory)
-        }
+        },
+        dns: config.dns
     };
 }
 exports.newAppConfig = newAppConfig;

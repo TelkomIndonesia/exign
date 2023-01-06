@@ -12,7 +12,7 @@
     "build": "npx tsc",
     "preserver": "node dist/main.js init",
     "server": "node dist/main.js",
-    "preserver-dev":"ts-node --files src/main.ts init",
+    "preserver-dev": "ts-node --files src/main.ts init",
     "server-dev": "ts-node --files src/main.ts",
     "test": "jest"
   },
@@ -21,6 +21,7 @@
   "dependencies": {
     "@isaacs/ttlcache": "^1.0.3",
     "@outtacontrol/socks": "^1.0.3",
+    "dnsjack": "^1.0.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.1",
     "express-async-errors": "^3.1.1",

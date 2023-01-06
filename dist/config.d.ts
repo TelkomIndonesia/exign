@@ -14,6 +14,9 @@ export declare function newAppConfig(): {
     logdb: {
         directory: string;
     };
+    dns: {
+        resolver: string;
+    };
 };
 interface generatePKIsOptions {
     signature: {
