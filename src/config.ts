@@ -11,6 +11,13 @@ import { sign } from './signature'
 import { digest } from './digest'
 import { Readable } from 'stream'
 
+const remoteConfig = {
+  url: process.env.FRPROXY_REMOTE_CONFIG_URL,
+  directory: process.env.FRPROXY_REMOTE_CONFIG_DIRECTORY || './config'
+}
+
+dotenv.config({ path: resolve(remoteConfig.directory, '.env') })
+
 const config = {
   clientBodyBufferSize: process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '8192',
 
@@ -28,15 +35,9 @@ const config = {
   },
   logdb: {
     directory: process.env.FRPROXY_LOGDB_DIRECTORY || './logs'
-  },
-
-  remoteConfig: {
-    url: process.env.FRPROXY_REMOTE_CONFIG_URL,
-    directory: process.env.FRPROXY_REMOTE_CONFIG_DIRECTORY || './config'
   }
-}
 
-dotenv.config({ path: resolve(config.remoteConfig.directory, '.env') })
+}
 
 function hostmap (str: string) {
   const map = new Map<string, string>()
@@ -172,12 +173,12 @@ interface downloadRemoteConfigsOptions {
   }
 }
 export async function downloadRemoteConfigs (opts?: downloadRemoteConfigsOptions) {
-  const url = opts?.url || config.remoteConfig.url
+  const url = opts?.url || remoteConfig.url
   if (!url) {
     return
   }
 
-  const directory = opts?.directory || config.remoteConfig.directory
+  const directory = opts?.directory || remoteConfig.directory
   let signature = opts?.signature
   if (!opts) {
     signature = {

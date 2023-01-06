@@ -54,17 +54,16 @@ async function main (args:string[]) {
   }
 
   if (args.length > 0) {
-    if (args[0] !== '--with-init' && args[0] !== 'init') {
+    if (args[0] !== 'init') {
       return console.error('Invalid arguments.')
     }
 
     await generatePKIs()
     await downloadRemoteConfigs()
+    return
   }
 
-  if (args.length === 0 || args[0] !== 'init') {
-    startServers()
-  }
+  startServers()
 }
 
 main(process.argv.slice(2))

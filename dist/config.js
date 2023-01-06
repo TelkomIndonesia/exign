@@ -14,6 +14,11 @@ const promises_2 = require("stream/promises");
 const signature_1 = require("./signature");
 const digest_1 = require("./digest");
 const stream_1 = require("stream");
+const remoteConfig = {
+    url: process.env.FRPROXY_REMOTE_CONFIG_URL,
+    directory: process.env.FRPROXY_REMOTE_CONFIG_DIRECTORY || './config'
+};
+dotenv_1.default.config({ path: (0, path_1.resolve)(remoteConfig.directory, '.env') });
 const config = {
     clientBodyBufferSize: process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '8192',
     hostmap: process.env.FRPROXY_HOSTMAP || '',
@@ -29,13 +34,8 @@ const config = {
     },
     logdb: {
         directory: process.env.FRPROXY_LOGDB_DIRECTORY || './logs'
-    },
-    remoteConfig: {
-        url: process.env.FRPROXY_REMOTE_CONFIG_URL,
-        directory: process.env.FRPROXY_REMOTE_CONFIG_DIRECTORY || './config'
     }
 };
-dotenv_1.default.config({ path: (0, path_1.resolve)(config.remoteConfig.directory, '.env') });
 function hostmap(str) {
     const map = new Map();
     return str.split(',')
@@ -132,11 +132,11 @@ function downloadIfExists(url, location, opts) {
 }
 function downloadRemoteConfigs(opts) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        const url = (opts === null || opts === void 0 ? void 0 : opts.url) || config.remoteConfig.url;
+        const url = (opts === null || opts === void 0 ? void 0 : opts.url) || remoteConfig.url;
         if (!url) {
             return;
         }
-        const directory = (opts === null || opts === void 0 ? void 0 : opts.directory) || config.remoteConfig.directory;
+        const directory = (opts === null || opts === void 0 ? void 0 : opts.directory) || remoteConfig.directory;
         let signature = opts === null || opts === void 0 ? void 0 : opts.signature;
         if (!opts) {
             signature = {

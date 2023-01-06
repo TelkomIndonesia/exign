@@ -52,15 +52,14 @@ function main(args) {
             return console.error('Invalid arguments.');
         }
         if (args.length > 0) {
-            if (args[0] !== '--with-init' && args[0] !== 'init') {
+            if (args[0] !== 'init') {
                 return console.error('Invalid arguments.');
             }
             yield (0, config_1.generatePKIs)();
             yield (0, config_1.downloadRemoteConfigs)();
+            return;
         }
-        if (args.length === 0 || args[0] !== 'init') {
-            startServers();
-        }
+        startServers();
     });
 }
 main(process.argv.slice(2));
