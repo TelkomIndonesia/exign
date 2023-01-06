@@ -32,7 +32,7 @@ function sign(req, opts) {
     }
     http_signature_1.default.sign(req, {
         key: opts.key,
-        keyId: opts.keyId || (opts.pubKey ? publicKeyFingerprint(opts.pubKey) : ''),
+        keyId: opts.keyId || (opts.pubkey ? publicKeyFingerprint(opts.pubkey) : ''),
         authorizationHeaderName: exports.signatureHeader,
         headers: Object.keys(req.getHeaders())
             .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v))

@@ -26,7 +26,7 @@ export function publicKeyFingerprint (key: string): string {
 interface SignOptions {
     key: string
     keyId?: string
-    pubKey?: string
+    pubkey?: string
 }
 export function sign (req: ClientRequest, opts: SignOptions) {
   const addParam = ['(request-target)']
@@ -36,7 +36,7 @@ export function sign (req: ClientRequest, opts: SignOptions) {
 
   httpSignature.sign(req, {
     key: opts.key,
-    keyId: opts.keyId || (opts.pubKey ? publicKeyFingerprint(opts.pubKey) : ''),
+    keyId: opts.keyId || (opts.pubkey ? publicKeyFingerprint(opts.pubkey) : ''),
     authorizationHeaderName: signatureHeader,
     headers: Object.keys(req.getHeaders())
       .filter(v => req.getHeader(v) && !hopByHopHeaders.get(v))
