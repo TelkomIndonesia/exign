@@ -7,6 +7,7 @@ import { newX509Pair, loadX509Pair } from './pki'
 import { downloadRemoteConfigs, generatePKIs, newAppConfig } from './config'
 import { newLogApp } from './log-app'
 import { newSocks5Server } from './socks5'
+import { newDNSOverrideServer } from './dns'
 
 async function startServers () {
   const appConfig = newAppConfig()
@@ -39,16 +40,21 @@ async function startServers () {
     .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'))
 
   newSocks5Server({ hostmap: appConfig.hostmap, dstAddrOverride: '0.0.0.0' })
-    . listen(1080, '0.0.0.0', function () {
-      console.log('[INFO] SOCKS5 Server listening on port 1080')
-    })
+    .listen(1080, '0.0.0.0',
+      () => console.log('[INFO] SOCKS5 Server listening on port 1080'))
+
+  newDNSOverrideServer({
+    hostsOverride: Array.from(appConfig.hostmap.keys()),
+    target: '0.0.0.0',
+    server: appConfig.dns.resolver
+  }).listen(53, () => console.log('[INFO] DNS Server listening on port 53'))
 
   const logapp = newLogApp({ logdb: appConfig.logdb })
   http.createServer(logapp)
     .listen(3000, () => console.log('[INFO] HTTP Config Server running on port 3000'))
 }
 
-async function main (args:string[]) {
+async function main (args: string[]) {
   if (args.length > 1) {
     return console.error('Invalid arguments.')
   }

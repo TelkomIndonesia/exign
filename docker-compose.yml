@@ -3,16 +3,8 @@ x-image:
   build: .
   image: httpsig-frproxy:0.7.1
 
-x-script:
-  &script
-  <<: *image
-  restart: on-failure
-  volumes:
-    - ./config:/src/config
-
 version: "3.0"
 services:
-
   frproxy:
     <<: *image
     restart: unless-stopped
@@ -27,6 +19,7 @@ services:
       FRPROXY_HOSTMAP:
       FRPROXY_REMOTE_CONFIG_URL:
       FRPROXY_REMOTE_CONFIG_DIRECTORY:
+      FRPROXY_DNS_RESOLVER: 127.0.0.11 # use docker internal server
 
       NODE_EXTRA_CA_CERTS: /src/config/backend-transport/ca.crt
     dns:
@@ -34,6 +27,7 @@ services:
       - 8.8.4.4
       - 1.1.1.1
     ports:
+      - 53:53/udp
       - "80:80"
       - "443:443"
       - "1080:1080"
@@ -45,39 +39,18 @@ services:
       start_period: 10s
       interval: 3s
       retries: 100
-      
-  dnsmasq:
-    <<: *image
-    depends_on:
-      frproxy:
-        condition: service_healthy
-    restart: unless-stopped
-    ports:
-      - "53:53"
-      - 53:53/udp
-    volumes:
-      - ./config:/src/config
-    entrypoint:
-      - dnsmasq
-      - -k
-      - --log-facility=-
-      - --no-host
-      - --no-resolv
-      - --addn-hosts=/src/config/hosts
-    command:
-      - --server=8.8.8.8
-      - --server=8.8.4.4
-      - --server=1.1.1.1
 
   connection-test:
-    <<: *script
+    <<: *image
+    restart: on-failure
     depends_on:
       frproxy:
         condition: service_healthy
     environment:
       SOCKS5_PROXY_ENDPOINT: frproxy:1080
       FRPROXY_HOSTNAME: frproxy
-    volumes: [ ./config:/src/config ]
+    volumes:
+      - ./config:/src/config
     entrypoint: [ bash, -c ]
     command:
       - ./scripts/append-hosts.sh && ./scripts/connection-test.sh && ./scripts/commit-config.sh

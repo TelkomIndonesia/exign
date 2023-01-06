@@ -10,6 +10,7 @@ const pki_1 = require("./pki");
 const config_1 = require("./config");
 const log_app_1 = require("./log-app");
 const socks5_1 = require("./socks5");
+const dns_1 = require("./dns");
 function startServers() {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const appConfig = (0, config_1.newAppConfig)();
@@ -38,9 +39,12 @@ function startServers() {
         https_1.default.createServer(httpsServerOptions, app)
             .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'));
         (0, socks5_1.newSocks5Server)({ hostmap: appConfig.hostmap, dstAddrOverride: '0.0.0.0' })
-            .listen(1080, '0.0.0.0', function () {
-            console.log('[INFO] SOCKS5 Server listening on port 1080');
-        });
+            .listen(1080, '0.0.0.0', () => console.log('[INFO] SOCKS5 Server listening on port 1080'));
+        (0, dns_1.newDNSOverrideServer)({
+            hostsOverride: Array.from(appConfig.hostmap.keys()),
+            target: '0.0.0.0',
+            server: appConfig.dns.resolver
+        }).listen(53, () => console.log('[INFO] DNS Server listening on port 53'));
         const logapp = (0, log_app_1.newLogApp)({ logdb: appConfig.logdb });
         http_1.default.createServer(logapp)
             .listen(3000, () => console.log('[INFO] HTTP Config Server running on port 3000'));
