@@ -36,32 +36,39 @@ function digest(input) {
 }
 exports.digest = digest;
 function restream(input, opts) {
-    var input_1, input_1_1;
-    var e_1, _a;
+    var _a, input_1, input_1_1;
+    var _b, e_1, _c, _d;
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const buffers = [];
         const maxBufSize = (opts === null || opts === void 0 ? void 0 : opts.bufferSize) || 8192;
         let tmpFile;
         let tmpFileCleanup;
         try {
-            for (input_1 = tslib_1.__asyncValues(input); input_1_1 = yield input_1.next(), !input_1_1.done;) {
-                const chunk = input_1_1.value;
-                if (!tmpFile && buffers.length + chunk.length <= maxBufSize) {
-                    buffers.push(chunk);
-                    continue;
+            for (_a = true, input_1 = tslib_1.__asyncValues(input); input_1_1 = yield input_1.next(), _b = input_1_1.done, !_b;) {
+                _d = input_1_1.value;
+                _a = false;
+                try {
+                    const chunk = _d;
+                    if (!tmpFile && buffers.length + chunk.length <= maxBufSize) {
+                        buffers.push(chunk);
+                        continue;
+                    }
+                    if (!tmpFile) {
+                        const { filepath, cleanup } = tmpFilename();
+                        [tmpFile, tmpFileCleanup] = [yield (0, promises_1.open)(filepath, 'w+'), cleanup];
+                        yield tmpFile.write(Buffer.from(buffers));
+                    }
+                    yield tmpFile.write(chunk);
                 }
-                if (!tmpFile) {
-                    const { filepath, cleanup } = tmpFilename();
-                    [tmpFile, tmpFileCleanup] = [yield (0, promises_1.open)(filepath, 'w+'), cleanup];
-                    yield tmpFile.write(Buffer.from(buffers));
+                finally {
+                    _a = true;
                 }
-                yield tmpFile.write(chunk);
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
         finally {
             try {
-                if (input_1_1 && !input_1_1.done && (_a = input_1.return)) yield _a.call(input_1);
+                if (!_a && !_b && (_c = input_1.return)) yield _c.call(input_1);
             }
             finally { if (e_1) throw e_1.error; }
         }

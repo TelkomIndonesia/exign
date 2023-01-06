@@ -116,7 +116,7 @@ function newHTTPMessageFinder(opts) {
         return arr;
     }, []));
     const fn = function findHTTPMessage(query, fopts) {
-        var e_1, _a;
+        var _a, e_1, _b, _c;
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const date = new Date((0, ulid_1.decodeTime)(query.id));
             let dbDate;
@@ -136,47 +136,54 @@ function newHTTPMessageFinder(opts) {
             const stream = new stream_1.PassThrough();
             let decoder;
             try {
-                for (var _b = tslib_1.__asyncValues(db.iterator({ gt: query.id, lt: query.id + '_' })), _c; _c = yield _b.next(), !_c.done;) {
-                    const [key, value] = _c.value;
-                    if (key.endsWith('-req-2') || key.endsWith('-res-2')) {
-                        if (decoder) {
-                            yield new Promise((resolve, reject) => {
-                                decoder === null || decoder === void 0 ? void 0 : decoder.on('close', resolve).on('error', reject).end();
-                            });
-                            decoder = undefined;
-                        }
-                        stream.write('\r\n'); // add newline after body
-                    }
-                    const w = decoder || stream;
-                    w.write(value) || (yield new Promise(resolve => stream.on('drain', resolve)));
-                    if ((fopts === null || fopts === void 0 ? void 0 : fopts.decodeBody) && key.endsWith('-0')) {
-                        const enc = value.toString().split('\r\n').reduce((s, v) => {
-                            const [name, value] = v.split(':', 2);
-                            if (name.trim().toLowerCase() !== 'content-encoding') {
-                                return s;
+                for (var _d = true, _e = tslib_1.__asyncValues(db.iterator({ gt: query.id, lt: query.id + '_' })), _f; _f = yield _e.next(), _a = _f.done, !_a;) {
+                    _c = _f.value;
+                    _d = false;
+                    try {
+                        const [key, value] = _c;
+                        if (key.endsWith('-req-2') || key.endsWith('-res-2')) {
+                            if (decoder) {
+                                yield new Promise((resolve, reject) => {
+                                    decoder === null || decoder === void 0 ? void 0 : decoder.on('close', resolve).on('error', reject).end();
+                                });
+                                decoder = undefined;
                             }
-                            return value.trim().toLowerCase();
-                        });
-                        switch (enc) {
-                            case 'gzip':
-                                decoder = (0, zlib_1.createGunzip)();
-                                break;
-                            case 'br':
-                                decoder = (0, zlib_1.createBrotliDecompress)();
-                                break;
-                            case 'deflate':
-                                decoder = (0, zlib_1.createInflate)();
-                                break;
+                            stream.write('\r\n'); // add newline after body
                         }
-                        decoder && decoder.pipe(stream, { end: false });
-                        stream.on('error', () => decoder === null || decoder === void 0 ? void 0 : decoder.destroy());
+                        const w = decoder || stream;
+                        w.write(value) || (yield new Promise(resolve => stream.on('drain', resolve)));
+                        if ((fopts === null || fopts === void 0 ? void 0 : fopts.decodeBody) && key.endsWith('-0')) {
+                            const enc = value.toString().split('\r\n').reduce((s, v) => {
+                                const [name, value] = v.split(':', 2);
+                                if (name.trim().toLowerCase() !== 'content-encoding') {
+                                    return s;
+                                }
+                                return value.trim().toLowerCase();
+                            });
+                            switch (enc) {
+                                case 'gzip':
+                                    decoder = (0, zlib_1.createGunzip)();
+                                    break;
+                                case 'br':
+                                    decoder = (0, zlib_1.createBrotliDecompress)();
+                                    break;
+                                case 'deflate':
+                                    decoder = (0, zlib_1.createInflate)();
+                                    break;
+                            }
+                            decoder && decoder.pipe(stream, { end: false });
+                            stream.on('error', () => decoder === null || decoder === void 0 ? void 0 : decoder.destroy());
+                        }
+                    }
+                    finally {
+                        _d = true;
                     }
                 }
             }
             catch (e_1_1) { e_1 = { error: e_1_1 }; }
             finally {
                 try {
-                    if (_c && !_c.done && (_a = _b.return)) yield _a.call(_b);
+                    if (!_d && !_a && (_b = _e.return)) yield _b.call(_e);
                 }
                 finally { if (e_1) throw e_1.error; }
             }

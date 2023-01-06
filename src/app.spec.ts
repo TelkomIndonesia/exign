@@ -46,8 +46,8 @@ function newTestApp (): { app: Application } {
     doubleDashDomains: ['domain.test'],
     clientBodyBufferSize: 32,
     signature: {
-      keyfile: testKey.private,
-      pubkeyfile: testKey.public
+      key: testKey.private,
+      pubkey: testKey.public
     },
     secure: true,
     logdb: {

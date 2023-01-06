@@ -10,37 +10,12 @@ x-script:
   volumes:
     - ./config:/src/config
 
-x-dnsmasq:
-  &dnsmasq
-  <<: *image
-  restart: unless-stopped
-  volumes:
-    - ./config:/src/config
-  entrypoint:
-    - dnsmasq
-    - -k
-    - --log-facility=-
-    - --no-host
-    - --no-resolv
-    - --addn-hosts=/src/config/hosts
-
 version: "3.0"
 services:
-  init:
-    <<: *script
-    entrypoint: [ bash, -c ]
-    environment:
-      REMOTE_CONFIG_URL:
-      REMOTE_CONFIG_USE_FRPROXY:
-    command:
-      - ./scripts/keygen.sh && ./scripts/remote-config.sh && ./scripts/commit-config.sh
 
   frproxy:
     <<: *image
     restart: unless-stopped
-    depends_on:
-      init:
-        condition: service_completed_successfully
     environment:
       FRPROXY_CLIENT_BODY_BUFFER_SIZE:
       FRPROXY_DOUBLEDASH_DOMAINS:
@@ -50,8 +25,9 @@ services:
       FRPROXY_TRANSPORT_CA_CERTFILE:
       FRPROXY_PROXY_SECURE:
       FRPROXY_HOSTMAP:
+      FRPROXY_REMOTE_CONFIG_URL:
+      FRPROXY_REMOTE_CONFIG_DIRECTORY:
 
-      DOTENV_CONFIG_PATH: /src/config/.env
       NODE_EXTRA_CA_CERTS: /src/config/backend-transport/ca.crt
     dns:
       - 8.8.8.8
@@ -60,15 +36,21 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "1080:1080"
       - "3000:3000"
     volumes:
       - ./config:/src/config
-
+    healthcheck: 
+      test: [CMD, curl, -s, "localhost:3000/index.html"]
+      start_period: 10s
+      interval: 3s
+      retries: 100
+      
   dnsmasq:
     <<: *image
     depends_on:
-      init:
-        condition: service_completed_successfully
+      frproxy:
+        condition: service_healthy
     restart: unless-stopped
     ports:
       - "53:53"
@@ -87,23 +69,15 @@ services:
       - --server=8.8.4.4
       - --server=1.1.1.1
 
-  socks5:
-    <<: *image
-    restart: unless-stopped
-    depends_on:
-      - frproxy
-    environment:
-      PROXY_PORT: 1080
-    ports:
-      - 1080:1080
-    volumes:
-      - ./config:/src/config
-    entrypoint: [ ./scripts/append-hosts.sh, socks5 ]
-
   connection-test:
     <<: *script
-    depends_on: [ frproxy ]
-    network_mode: service:socks5
+    depends_on:
+      frproxy:
+        condition: service_healthy
     environment:
-      SOCKS5_PROXY_ENDPOINT: socks5:1080
-    entrypoint: [ ./scripts/connection-test.sh ]
+      SOCKS5_PROXY_ENDPOINT: frproxy:1080
+      FRPROXY_HOSTNAME: frproxy
+    volumes: [ ./config:/src/config ]
+    entrypoint: [ bash, -c ]
+    command:
+      - ./scripts/append-hosts.sh && ./scripts/connection-test.sh && ./scripts/commit-config.sh

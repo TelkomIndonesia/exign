@@ -6,7 +6,7 @@ export declare function publicKeyFingerprint(key: string): string;
 interface SignOptions {
     key: string;
     keyId?: string;
-    pubKey?: string;
+    pubkey?: string;
 }
 export declare function sign(req: ClientRequest, opts: SignOptions): void;
 interface verifiyOptions {
