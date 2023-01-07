@@ -9,6 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
@@ -29,9 +30,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: docker_meta
-        uses: docker/metadata-action@v3.6.0
+        uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
