@@ -10,8 +10,8 @@ import { errorMW } from './error'
 
 interface AppOptions {
   signature: {
-    keyfile: string,
-    pubkeyfile: string
+    key: string,
+    pubkey: string
   },
   clientBodyBufferSize: number
   doubleDashDomains: string[]
@@ -23,8 +23,6 @@ interface AppOptions {
 }
 
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
-  const key = opts.signature.keyfile
-  const pubKey = opts.signature.pubkeyfile
   const logMessage = newHTTPMessageLogger(opts.logdb)
 
   const proxy = createProxyServer({ ws: true })
@@ -36,7 +34,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       res.setHeader(messageIDHeader, attachID(proxyReq))
       consoleLog(proxyReq)
       logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
-      sign(proxyReq, { key, pubKey })
+      sign(proxyReq, opts.signature)
     })
     .on('proxyRes', (proxyRes, _, res) => {
       proxyRes.on('end', () => res.addTrailers(proxyRes.trailers))

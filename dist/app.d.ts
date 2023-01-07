@@ -1,8 +1,8 @@
 import { Application } from 'express';
 interface AppOptions {
     signature: {
-        keyfile: string;
-        pubkeyfile: string;
+        key: string;
+        pubkey: string;
     };
     clientBodyBufferSize: number;
     doubleDashDomains: string[];

@@ -12,8 +12,6 @@ const log_1 = require("./log");
 const https_1 = require("https");
 const error_1 = require("./error");
 function newSignatureProxyHandler(opts) {
-    const key = opts.signature.keyfile;
-    const pubKey = opts.signature.pubkeyfile;
     const logMessage = (0, log_1.newHTTPMessageLogger)(opts.logdb);
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq, req, res) {
@@ -23,7 +21,7 @@ function newSignatureProxyHandler(opts) {
         res.setHeader(log_1.messageIDHeader, (0, log_1.attachID)(proxyReq));
         (0, log_1.consoleLog)(proxyReq);
         logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
-        (0, signature_1.sign)(proxyReq, { key, pubKey });
+        (0, signature_1.sign)(proxyReq, opts.signature);
     })
         .on('proxyRes', (proxyRes, _, res) => {
         proxyRes.on('end', () => res.addTrailers(proxyRes.trailers));

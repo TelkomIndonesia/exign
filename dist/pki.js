@@ -1,17 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCertPair = exports.loadCertPairSync = void 0;
+exports.newECDSAPair = exports.newX509Pair = exports.loadX509Pair = void 0;
 const node_forge_1 = require("node-forge");
 const crypto_1 = require("crypto");
-function loadCertPairSync(keyPem, certPem) {
+const sshpk_1 = require("sshpk");
+function loadX509Pair(keyPem, certPem) {
     const key = node_forge_1.pki.privateKeyFromPem(keyPem);
     const cert = node_forge_1.pki.certificateFromPem(certPem);
     return { key, cert };
 }
-exports.loadCertPairSync = loadCertPairSync;
+exports.loadX509Pair = loadX509Pair;
 const certificateCache = new Map();
-function createCertPair(domain, opts) {
-    var _a;
+function newX509Pair(domain, opts) {
+    var _a, _b;
     let pair = certificateCache.get(domain);
     if (pair) {
         return pair;
@@ -33,7 +34,7 @@ function createCertPair(domain, opts) {
     ];
     cert.setSubject(attrs);
     cert.setExtensions([
-        { name: 'basicConstraints', cA: false },
+        { name: 'basicConstraints', cA: !(opts === null || opts === void 0 ? void 0 : opts.caKey) },
         {
             name: 'keyUsage',
             critical: true,
@@ -56,9 +57,9 @@ function createCertPair(domain, opts) {
             server: true,
             email: true,
             objsign: true,
-            sslCA: false,
-            emailCA: false,
-            objCA: false
+            sslCA: !(opts === null || opts === void 0 ? void 0 : opts.caKey),
+            emailCA: !(opts === null || opts === void 0 ? void 0 : opts.caKey),
+            objCA: !(opts === null || opts === void 0 ? void 0 : opts.caKey)
         },
         {
             name: 'subjectAltName',
@@ -66,11 +67,16 @@ function createCertPair(domain, opts) {
         },
         { name: 'subjectKeyIdentifier' }
     ]);
-    cert.setIssuer(opts.caCert.subject.attributes);
-    cert.sign(opts.caKey, node_forge_1.md.sha256.create());
+    cert.setIssuer(((_b = opts === null || opts === void 0 ? void 0 : opts.caCert) === null || _b === void 0 ? void 0 : _b.subject.attributes) || attrs);
+    cert.sign((opts === null || opts === void 0 ? void 0 : opts.caKey) || keys.privateKey, node_forge_1.md.sha256.create());
     pair = { key: keys.privateKey, cert };
     certificateCache.set(domain, pair);
     return pair;
 }
-exports.createCertPair = createCertPair;
-//# sourceMappingURL=certificate.js.map
+exports.newX509Pair = newX509Pair;
+function newECDSAPair() {
+    const key = (0, sshpk_1.generatePrivateKey)('ecdsa', { curve: 'nistp256' });
+    return { key, publicKey: key.toPublic() };
+}
+exports.newECDSAPair = newECDSAPair;
+//# sourceMappingURL=pki.js.map

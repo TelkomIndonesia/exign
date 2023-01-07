@@ -1,23 +1,24 @@
 import { pki, md } from 'node-forge'
 import { randomBytes } from 'crypto'
+import { generatePrivateKey } from 'sshpk'
 
-interface CertPair {
-    key: pki.PrivateKey;
-    cert: pki.Certificate;
+interface x509Pair {
+  key: pki.PrivateKey;
+  cert: pki.Certificate;
 }
 
-export function loadCertPairSync (keyPem: string, certPem: string): CertPair {
+export function loadX509Pair (keyPem: string, certPem: string): x509Pair {
   const key = pki.privateKeyFromPem(keyPem)
   const cert = pki.certificateFromPem(certPem)
   return { key, cert }
 }
 
-const certificateCache: Map<string, CertPair> = new Map<string, CertPair>()
+const certificateCache: Map<string, x509Pair> = new Map<string, x509Pair>()
 interface createCertOptions {
-    caKey: pki.PrivateKey
-    caCert: pki.Certificate
+  caKey?: pki.PrivateKey
+  caCert?: pki.Certificate
 }
-export function createCertPair (domain: string, opts: createCertOptions): CertPair {
+export function newX509Pair (domain: string, opts?: createCertOptions): x509Pair {
   let pair = certificateCache.get(domain)
   if (pair) {
     return pair
@@ -40,7 +41,7 @@ export function createCertPair (domain: string, opts: createCertOptions): CertPa
   ]
   cert.setSubject(attrs)
   cert.setExtensions([
-    { name: 'basicConstraints', cA: false },
+    { name: 'basicConstraints', cA: !opts?.caKey },
     {
       name: 'keyUsage',
       critical: true,
@@ -63,9 +64,9 @@ export function createCertPair (domain: string, opts: createCertOptions): CertPa
       server: true,
       email: true,
       objsign: true,
-      sslCA: false,
-      emailCA: false,
-      objCA: false
+      sslCA: !opts?.caKey,
+      emailCA: !opts?.caKey,
+      objCA: !opts?.caKey
     },
     {
       name: 'subjectAltName',
@@ -73,10 +74,15 @@ export function createCertPair (domain: string, opts: createCertOptions): CertPa
     },
     { name: 'subjectKeyIdentifier' }
   ])
-  cert.setIssuer(opts.caCert.subject.attributes)
-  cert.sign(opts.caKey, md.sha256.create())
+  cert.setIssuer(opts?.caCert?.subject.attributes || attrs)
+  cert.sign(opts?.caKey || keys.privateKey, md.sha256.create())
 
   pair = { key: keys.privateKey, cert }
   certificateCache.set(domain, pair)
   return pair
+}
+
+export function newECDSAPair () {
+  const key = generatePrivateKey('ecdsa', { curve: 'nistp256' })
+  return { key, publicKey: key.toPublic() }
 }
