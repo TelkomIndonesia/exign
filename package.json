@@ -1,6 +1,6 @@
 {
   "name": "httpsig-frproxy",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "local reverse proxy to add signature to received HTTP Requests",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
