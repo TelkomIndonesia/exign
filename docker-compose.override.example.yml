@@ -1,10 +1,4 @@
 services:
-  dnsmasq:
-    command: 
-      # Use OpenDNS as resolver
-      - --server=208.67.222.222
-      - --server=208.67.220.220
-
   exign:
     volumes:
       # Use existing trusted CA
