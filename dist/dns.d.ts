@@ -1,8 +1,8 @@
 interface options {
-    hostsOverride: string[];
-    target: string;
+    hosts: string[];
+    address: string;
     port?: number;
-    server?: string;
+    resolver?: string;
 }
 export declare function newDNSOverrideServer(opts: options): {
     listen: (port: number, cb?: () => void) => void;

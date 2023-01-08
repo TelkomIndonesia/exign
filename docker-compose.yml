@@ -1,27 +1,27 @@
 x-image:
   &image
   build: .
-  image: httpsig-frproxy:0.8.0
+  image: exign:0.9.0
 
 version: "3.0"
 services:
-  frproxy:
+  exign:
     <<: *image
     restart: unless-stopped
     environment:
-      FRPROXY_CLIENT_BODY_BUFFER_SIZE:
-      FRPROXY_DOUBLEDASH_DOMAINS:
-      FRPROXY_SIGNATURE_KEYFILE:
-      FRPROXY_SIGNATURE_PUBKEYFILE:
-      FRPROXY_TRANSPORT_CA_KEYFILE:
-      FRPROXY_TRANSPORT_CA_CERTFILE:
-      FRPROXY_PROXY_SECURE:
-      FRPROXY_HOSTMAP:
-      FRPROXY_REMOTE_CONFIG_URL:
-      FRPROXY_REMOTE_CONFIG_DIRECTORY:
-      FRPROXY_DNS_RESOLVER: 127.0.0.11 # use docker internal server
+      EXIGN_CLIENT_BODY_BUFFER_SIZE:
+      EXIGN_UPSTREAMS_DOUBLEDASH_DOMAINS:
+      EXIGN_UPSTREAMS_HOSTMAP:
+      EXIGN_UPSTREAMS_SECURE:
+      EXIGN_SIGNATURE_KEYFILE:
+      EXIGN_SIGNATURE_PUBKEYFILE:
+      EXIGN_TRANSPORT_CA_KEYFILE:
+      EXIGN_TRANSPORT_CA_CERTFILE:
+      EXIGN_REMOTE_CONFIG_URL:
+      EXIGN_REMOTE_CONFIG_DIRECTORY:
+      EXIGN_DNS_RESOLVER: 127.0.0.11 # use docker internal server
 
-      NODE_EXTRA_CA_CERTS: /src/config/backend-transport/ca.crt
+      NODE_EXTRA_CA_CERTS: /src/config/upstream-transport/ca.crt
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -34,6 +34,7 @@ services:
       - "3000:3000"
     volumes:
       - ./config:/src/config
+      - ./logs:/src/logs
     healthcheck: 
       test: [CMD, curl, -s, "localhost:3000/index.html"]
       start_period: 10s
@@ -44,11 +45,11 @@ services:
     <<: *image
     restart: on-failure
     depends_on:
-      frproxy:
+      exign:
         condition: service_healthy
     environment:
-      SOCKS5_PROXY_ENDPOINT: frproxy:1080
-      FRPROXY_HOSTNAME: frproxy
+      SOCKS5_PROXY_ENDPOINT: exign:1080
+      EXIGN_HOSTNAME: exign
     volumes:
       - ./config:/src/config
     entrypoint: [ bash, -c ]

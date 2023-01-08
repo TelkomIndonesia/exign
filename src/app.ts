@@ -14,9 +14,11 @@ interface AppOptions {
     pubkey: string
   },
   clientBodyBufferSize: number
-  doubleDashDomains: string[]
-  hostmap: Map<string, string>,
-  secure: boolean
+  upstreams: {
+    doubleDashDomains: string[]
+    hostmap: Map<string, string>,
+    secure: boolean
+  }
   logdb: {
     directory: string
   }
@@ -49,15 +51,15 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
     ])
     res.once('close', () => body.destroy())
 
-    const targetHost = opts.hostmap.get(req.hostname) ||
-      await mapDoubleDashHostname(req.hostname, opts.doubleDashDomains) ||
+    const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
+      await mapDoubleDashHostname(req.hostname, opts.upstreams.doubleDashDomains) ||
       req.hostname
 
     proxy.web(req, res,
       {
         changeOrigin: false,
         target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
-        secure: opts.secure,
+        secure: opts.upstreams.secure,
         buffer: body,
         headers: { digest: digestValue },
         agent: req.protocol === 'http' ? httpagent : httpsagent

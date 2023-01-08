@@ -36,8 +36,8 @@ export function newX509Pair (domain: string, opts?: createCertOptions): x509Pair
     { name: 'countryName', value: 'ID' },
     { shortName: 'ST', value: 'West Java' },
     { name: 'localityName', value: 'Bandung' },
-    { name: 'organizationName', value: 'httpsig-frproxy' },
-    { shortName: 'OU', value: 'httpsig-frproxy' }
+    { name: 'organizationName', value: 'exign' },
+    { shortName: 'OU', value: 'exign' }
   ]
   cert.setSubject(attrs)
   cert.setExtensions([

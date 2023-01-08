@@ -5,39 +5,42 @@ import { pki } from 'node-forge'
 import { dirname, resolve } from 'path'
 import { newX509Pair, newECDSAPair } from './pki'
 import { IncomingMessage, request as requestHTTP } from 'http'
-import { request as requestHTTPS } from 'https'
+import { Agent as AgentHTTPS, request as requestHTTPS } from 'https'
 import { pipeline } from 'stream/promises'
 import { sign } from './signature'
 import { digest } from './digest'
 import { Readable } from 'stream'
 
 const remoteConfig = {
-  url: process.env.FRPROXY_REMOTE_CONFIG_URL,
-  directory: process.env.FRPROXY_REMOTE_CONFIG_DIRECTORY || './config'
+  url: process.env.EXIGN_REMOTE_CONFIG_URL,
+  directory: process.env.EXIGN_REMOTE_CONFIG_DIRECTORY || './config'
 }
 
 dotenv.config({ path: resolve(remoteConfig.directory, '.env') })
 
 const config = {
-  clientBodyBufferSize: process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '8192',
+  clientBodyBufferSize: process.env.EXIGN_CLIENT_BODY_BUFFER_SIZE || '8192',
 
-  hostmap: process.env.FRPROXY_HOSTMAP || '',
-  doubleDashDomains: process.env.FRPROXY_DOUBLEDASH_DOMAINS || '',
-  secure: process.env.FRPROXY_PROXY_SECURE || 'true',
+  upstreams: {
+    hostmap: process.env.EXIGN_UPSTREAMS_HOSTMAP || '',
+    doubleDashDomains: process.env.EXIGN_UPSTREAMS_DOUBLEDASH_DOMAINS || '',
+    secure: process.env.EXIGN_UPSTREAMS_SECURE || 'true'
+  },
 
   signature: {
-    keyfile: process.env.FRPROXY_SIGNATURE_KEYFILE || './config/signature/key.pem',
-    pubkeyfile: process.env.FRPROXY_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem'
+    keyfile: process.env.EXIGN_SIGNATURE_KEYFILE || './config/signature/key.pem',
+    pubkeyfile: process.env.EXIGN_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem'
   },
   transport: {
-    caKeyfile: process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './config/transport/ca-key.pem',
-    caCertfile: process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './config/transport/ca.crt'
+    caKeyfile: process.env.EXIGN_TRANSPORT_CA_KEYFILE || './config/transport/ca-key.pem',
+    caCertfile: process.env.EXIGN_TRANSPORT_CA_CERTFILE || './config/transport/ca.crt'
   },
   logdb: {
-    directory: process.env.FRPROXY_LOGDB_DIRECTORY || './logs'
+    directory: process.env.EXIGN_LOGDB_DIRECTORY || './logs'
   },
   dns: {
-    resolver: process.env.FRPROXY_DNS_RESOLVER || '1.1.1.1'
+    resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
+    advertisedAddres: process.env.EXIGN_DNS_ADVERTISED_ADDRESS || '0.0.0.0'
   }
 
 }
@@ -47,7 +50,7 @@ function hostmap (str: string) {
   return str.split(',')
     .reduce((map, str) => {
       const [host, targethost] = str.trim().split(':')
-      map.set(host, targethost)
+      map.set(host, targethost || host)
       return map
     }, map)
 }
@@ -71,10 +74,11 @@ export function newAppConfig () {
   return {
     clientBodyBufferSize: parseInt(config.clientBodyBufferSize),
 
-    hostmap: hostmap(config.hostmap),
-    doubleDashDomains: doubleDashDomains(config.doubleDashDomains),
-    secure: config.secure === 'true',
-
+    upstreams: {
+      hostmap: hostmap(config.upstreams.hostmap),
+      doubleDashDomains: doubleDashDomains(config.upstreams.doubleDashDomains),
+      secure: config.upstreams.secure === 'true'
+    },
     signature: {
       key: file(config.signature.keyfile),
       pubkey: file(config.signature.pubkeyfile)
@@ -129,7 +133,7 @@ export async function generatePKIs (opts?: generatePKIsOptions) {
   }
 
   {
-    const { key, cert } = newX509Pair('httpsig-frproxy.non')
+    const { key, cert } = newX509Pair('exign.non')
     const created = await writeFilesIfNotExist(
       [opts.transport.caKeyfile, pki.privateKeyToPem(key)],
       [opts.transport.caCertfile, pki.certificateToPem(cert)]
@@ -146,9 +150,9 @@ interface downloadOptions {
 }
 async function downloadIfExists (url: URL, location: string, opts?: downloadOptions) {
   await mkdir(dirname(location), { recursive: true })
-
-  const request = url.protocol === 'http' ? requestHTTP : requestHTTPS
-  const req = request(url)
+  const request = url.protocol === 'http:' ? requestHTTP : requestHTTPS
+  const agent = url.protocol === 'https:' && !config.upstreams.secure ? new AgentHTTPS({ rejectUnauthorized: false }) : undefined
+  const req = request(url, { agent })
   if (opts?.signature) {
     req.setHeader('digest', await digest(Readable.from([], { objectMode: false })))
     sign(req, opts.signature)
@@ -190,12 +194,12 @@ export async function downloadRemoteConfigs (opts?: downloadRemoteConfigsOptions
       pubkey: await readFile(config.signature.pubkeyfile, 'utf-8')
     }
   }
-  const configNames = ['.env', 'hosts', 'backend-transport/ca.crt']
+  const configNames = ['.env', 'hosts', 'upstream-transport/ca.crt']
   for (const name of configNames) {
     while (true) {
       try {
-        await downloadIfExists(new URL(name, url), resolve(directory, name), { signature })
-        console.log(`[INFO] Remote configs '${name}' downloaded`)
+        const dowloaded = await downloadIfExists(new URL(name, url), resolve(directory, name), { signature })
+        dowloaded && console.log(`[INFO] Remote configs '${name}' downloaded`)
         break
       } catch (err) {
         if (err instanceof Error) {

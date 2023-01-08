@@ -2,7 +2,7 @@
 set -euo pipefail
 
 
-FRPROXY_HOSTNAME="${FRPROXY_HOSTNAME:-"frproxy"}"
+EXIGN_HOSTNAME="${EXIGN_HOSTNAME:-"exign"}"
 HOSTS_FILE="${HOSTS_FILE:-"./config/hosts"}"
 
 function iplookup(){
@@ -20,7 +20,7 @@ if [ -s "$HOSTS_FILE" ]; then
     cat "/etc/hosts.orig" > "/etc/hosts"
     cat $HOSTS_FILE \
         | awk '{print $2}' \
-            | xargs -I {} echo "$(iplookup "${FRPROXY_HOSTNAME}") {}" \
+            | xargs -I {} echo "$(iplookup "${EXIGN_HOSTNAME}") {}" \
                 | tee -a "/etc/hosts"
 fi
 
