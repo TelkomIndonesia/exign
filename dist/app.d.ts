@@ -5,9 +5,11 @@ interface AppOptions {
         pubkey: string;
     };
     clientBodyBufferSize: number;
-    doubleDashDomains: string[];
-    hostmap: Map<string, string>;
-    secure: boolean;
+    upstreams: {
+        doubleDashDomains: string[];
+        hostmap: Map<string, string>;
+        secure: boolean;
+    };
     logdb: {
         directory: string;
     };

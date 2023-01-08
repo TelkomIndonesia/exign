@@ -1,8 +1,10 @@
 export declare function newAppConfig(): {
     clientBodyBufferSize: number;
-    hostmap: Map<string, string>;
-    doubleDashDomains: string[];
-    secure: boolean;
+    upstreams: {
+        hostmap: Map<string, string>;
+        doubleDashDomains: string[];
+        secure: boolean;
+    };
     signature: {
         key: string;
         pubkey: string;
@@ -16,6 +18,7 @@ export declare function newAppConfig(): {
     };
     dns: {
         resolver: string;
+        advertisedAddres: string;
     };
 };
 interface generatePKIsOptions {

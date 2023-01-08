@@ -15,28 +15,31 @@ const signature_1 = require("./signature");
 const digest_1 = require("./digest");
 const stream_1 = require("stream");
 const remoteConfig = {
-    url: process.env.FRPROXY_REMOTE_CONFIG_URL,
-    directory: process.env.FRPROXY_REMOTE_CONFIG_DIRECTORY || './config'
+    url: process.env.EXIGN_REMOTE_CONFIG_URL,
+    directory: process.env.EXIGN_REMOTE_CONFIG_DIRECTORY || './config'
 };
 dotenv_1.default.config({ path: (0, path_1.resolve)(remoteConfig.directory, '.env') });
 const config = {
-    clientBodyBufferSize: process.env.FRPROXY_CLIENT_BODY_BUFFER_SIZE || '8192',
-    hostmap: process.env.FRPROXY_HOSTMAP || '',
-    doubleDashDomains: process.env.FRPROXY_DOUBLEDASH_DOMAINS || '',
-    secure: process.env.FRPROXY_PROXY_SECURE || 'true',
+    clientBodyBufferSize: process.env.EXIGN_CLIENT_BODY_BUFFER_SIZE || '8192',
+    upstreams: {
+        hostmap: process.env.EXIGN_UPSTREAMS_HOSTMAP || '',
+        doubleDashDomains: process.env.EXIGN_UPSTREAMS_DOUBLEDASH_DOMAINS || '',
+        secure: process.env.EXIGN_UPSTREAMS_SECURE || 'true'
+    },
     signature: {
-        keyfile: process.env.FRPROXY_SIGNATURE_KEYFILE || './config/signature/key.pem',
-        pubkeyfile: process.env.FRPROXY_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem'
+        keyfile: process.env.EXIGN_SIGNATURE_KEYFILE || './config/signature/key.pem',
+        pubkeyfile: process.env.EXIGN_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem'
     },
     transport: {
-        caKeyfile: process.env.FRPROXY_TRANSPORT_CA_KEYFILE || './config/transport/ca-key.pem',
-        caCertfile: process.env.FRPROXY_TRANSPORT_CA_CERTFILE || './config/transport/ca.crt'
+        caKeyfile: process.env.EXIGN_TRANSPORT_CA_KEYFILE || './config/transport/ca-key.pem',
+        caCertfile: process.env.EXIGN_TRANSPORT_CA_CERTFILE || './config/transport/ca.crt'
     },
     logdb: {
-        directory: process.env.FRPROXY_LOGDB_DIRECTORY || './logs'
+        directory: process.env.EXIGN_LOGDB_DIRECTORY || './logs'
     },
     dns: {
-        resolver: process.env.FRPROXY_DNS_RESOLVER || '1.1.1.1'
+        resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
+        advertisedAddres: process.env.EXIGN_DNS_ADVERTISED_ADDRESS || '0.0.0.0'
     }
 };
 function hostmap(str) {
@@ -44,7 +47,7 @@ function hostmap(str) {
     return str.split(',')
         .reduce((map, str) => {
         const [host, targethost] = str.trim().split(':');
-        map.set(host, targethost);
+        map.set(host, targethost || host);
         return map;
     }, map);
 }
@@ -61,9 +64,11 @@ function dir(name) {
 function newAppConfig() {
     return {
         clientBodyBufferSize: parseInt(config.clientBodyBufferSize),
-        hostmap: hostmap(config.hostmap),
-        doubleDashDomains: doubleDashDomains(config.doubleDashDomains),
-        secure: config.secure === 'true',
+        upstreams: {
+            hostmap: hostmap(config.upstreams.hostmap),
+            doubleDashDomains: doubleDashDomains(config.upstreams.doubleDashDomains),
+            secure: config.upstreams.secure === 'true'
+        },
         signature: {
             key: file(config.signature.keyfile),
             pubkey: file(config.signature.pubkeyfile)
@@ -107,7 +112,7 @@ function generatePKIs(opts) {
             created ? console.log('[INFO] Signature keys created') : console.log('[INFO] Signature keys exists');
         }
         {
-            const { key, cert } = (0, pki_1.newX509Pair)('httpsig-frproxy.non');
+            const { key, cert } = (0, pki_1.newX509Pair)('exign.non');
             const created = yield writeFilesIfNotExist([opts.transport.caKeyfile, node_forge_1.pki.privateKeyToPem(key)], [opts.transport.caCertfile, node_forge_1.pki.certificateToPem(cert)]);
             created ? console.log('[INFO] Transport keys created') : console.log('[INFO] Transport keys exists');
         }
@@ -117,8 +122,9 @@ exports.generatePKIs = generatePKIs;
 function downloadIfExists(url, location, opts) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         yield (0, promises_1.mkdir)((0, path_1.dirname)(location), { recursive: true });
-        const request = url.protocol === 'http' ? http_1.request : https_1.request;
-        const req = request(url);
+        const request = url.protocol === 'http:' ? http_1.request : https_1.request;
+        const agent = url.protocol === 'https:' && !config.upstreams.secure ? new https_1.Agent({ rejectUnauthorized: false }) : undefined;
+        const req = request(url, { agent });
         if (opts === null || opts === void 0 ? void 0 : opts.signature) {
             req.setHeader('digest', yield (0, digest_1.digest)(stream_1.Readable.from([], { objectMode: false })));
             (0, signature_1.sign)(req, opts.signature);
@@ -148,12 +154,12 @@ function downloadRemoteConfigs(opts) {
                 pubkey: yield (0, promises_1.readFile)(config.signature.pubkeyfile, 'utf-8')
             };
         }
-        const configNames = ['.env', 'hosts', 'backend-transport/ca.crt'];
+        const configNames = ['.env', 'hosts', 'upstream-transport/ca.crt'];
         for (const name of configNames) {
             while (true) {
                 try {
-                    yield downloadIfExists(new URL(name, url), (0, path_1.resolve)(directory, name), { signature });
-                    console.log(`[INFO] Remote configs '${name}' downloaded`);
+                    const dowloaded = yield downloadIfExists(new URL(name, url), (0, path_1.resolve)(directory, name), { signature });
+                    dowloaded && console.log(`[INFO] Remote configs '${name}' downloaded`);
                     break;
                 }
                 catch (err) {

@@ -35,13 +35,13 @@ function newSignatureProxyHandler(opts) {
                 (0, digest_1.restream)(req, { bufferSize: opts.clientBodyBufferSize })
             ]);
             res.once('close', () => body.destroy());
-            const targetHost = opts.hostmap.get(req.hostname) ||
-                (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.doubleDashDomains)) ||
+            const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
+                (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.upstreams.doubleDashDomains)) ||
                 req.hostname;
             proxy.web(req, res, {
                 changeOrigin: false,
                 target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
-                secure: opts.secure,
+                secure: opts.upstreams.secure,
                 buffer: body,
                 headers: { digest: digestValue },
                 agent: req.protocol === 'http' ? httpagent : httpsagent

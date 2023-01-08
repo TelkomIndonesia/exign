@@ -5,7 +5,7 @@ import { pki } from 'node-forge'
 import { dirname, resolve } from 'path'
 import { newX509Pair, newECDSAPair } from './pki'
 import { IncomingMessage, request as requestHTTP } from 'http'
-import { request as requestHTTPS } from 'https'
+import { Agent as AgentHTTPS, request as requestHTTPS } from 'https'
 import { pipeline } from 'stream/promises'
 import { sign } from './signature'
 import { digest } from './digest'
@@ -150,9 +150,9 @@ interface downloadOptions {
 }
 async function downloadIfExists (url: URL, location: string, opts?: downloadOptions) {
   await mkdir(dirname(location), { recursive: true })
-
-  const request = url.protocol === 'http' ? requestHTTP : requestHTTPS
-  const req = request(url)
+  const request = url.protocol === 'http:' ? requestHTTP : requestHTTPS
+  const agent = url.protocol === 'https:' && !config.upstreams.secure ? new AgentHTTPS({ rejectUnauthorized: false }) : undefined
+  const req = request(url, { agent })
   if (opts?.signature) {
     req.setHeader('digest', await digest(Readable.from([], { objectMode: false })))
     sign(req, opts.signature)
@@ -194,12 +194,12 @@ export async function downloadRemoteConfigs (opts?: downloadRemoteConfigsOptions
       pubkey: await readFile(config.signature.pubkeyfile, 'utf-8')
     }
   }
-  const configNames = ['.env', 'hosts', 'backend-transport/ca.crt']
+  const configNames = ['.env', 'hosts', 'upstream-transport/ca.crt']
   for (const name of configNames) {
     while (true) {
       try {
-        await downloadIfExists(new URL(name, url), resolve(directory, name), { signature })
-        console.log(`[INFO] Remote configs '${name}' downloaded`)
+        const dowloaded = await downloadIfExists(new URL(name, url), resolve(directory, name), { signature })
+        dowloaded && console.log(`[INFO] Remote configs '${name}' downloaded`)
         break
       } catch (err) {
         if (err instanceof Error) {

@@ -21,7 +21,7 @@ services:
       EXIGN_REMOTE_CONFIG_DIRECTORY:
       EXIGN_DNS_RESOLVER: 127.0.0.11 # use docker internal server
 
-      NODE_EXTRA_CA_CERTS: /src/config/backend-transport/ca.crt
+      NODE_EXTRA_CA_CERTS: /src/config/upstream-transport/ca.crt
     dns:
       - 8.8.8.8
       - 8.8.4.4
