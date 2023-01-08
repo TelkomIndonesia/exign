@@ -1,11 +1,11 @@
 {
-  "name": "httpsig-frproxy",
+  "name": "exign",
   "version": "0.8.0",
   "description": "local reverse proxy to add signature to received HTTP Requests",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "httpsig-frproxy": "./dist/main.js"
+    "exign": "./dist/main.js"
   },
   "scripts": {
     "prebuild": "rimraf dist",

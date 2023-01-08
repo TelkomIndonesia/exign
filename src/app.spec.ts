@@ -42,14 +42,16 @@ function interceptReq (url: URL, method: string): Promise<ClientRequest & { head
 
 function newTestApp (): { app: Application } {
   const app = newApp({
-    hostmap: new Map<string, string>(),
-    doubleDashDomains: ['domain.test'],
+    upstreams: {
+      hostmap: new Map<string, string>(),
+      doubleDashDomains: ['domain.test'],
+      secure: true
+    },
     clientBodyBufferSize: 32,
     signature: {
       key: testKey.private,
       pubkey: testKey.public
     },
-    secure: true,
     logdb: {
       directory: 'logs'
     }
