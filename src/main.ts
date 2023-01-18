@@ -1,5 +1,5 @@
 import http from 'http'
-import https from 'https'
+import https, { ServerOptions } from 'https'
 import tls from 'tls'
 import { pki } from 'node-forge'
 import { newApp } from './app'
@@ -26,7 +26,7 @@ async function startServers () {
       ca: pki.certificateToPem(caCert)
     }).context)
   }
-  const httpsServerOptions = {
+  const httpsServerOptions : ServerOptions = {
     SNICallback: sniCallback,
     key: pki.privateKeyToPem(localhostKey),
     cert: pki.certificateToPem(localhostCert),
