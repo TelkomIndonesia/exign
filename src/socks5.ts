@@ -3,13 +3,13 @@ import { None } from '@outtacontrol/socks/lib/auth/None'
 
 interface newSocks5ServerOptions {
     target: string
-    hostmap?: Map<string, string>,
+    hosts?: Map<string, unknown>,
   }
 export function newSocks5Server (opts: newSocks5ServerOptions) {
   return createServer(
     function (info, accept) {
-      if (opts.hostmap && opts.hostmap.size > 0) {
-        info.dstAddr = opts.hostmap.get(info.dstAddr)
+      if (opts.hosts && opts.hosts.size > 0) {
+        info.dstAddr = opts.hosts.get(info.dstAddr)
           ? opts.target
           : info.dstAddr
       } else {

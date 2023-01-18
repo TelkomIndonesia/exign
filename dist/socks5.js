@@ -5,8 +5,8 @@ const socks_1 = require("@outtacontrol/socks");
 const None_1 = require("@outtacontrol/socks/lib/auth/None");
 function newSocks5Server(opts) {
     return (0, socks_1.createServer)(function (info, accept) {
-        if (opts.hostmap && opts.hostmap.size > 0) {
-            info.dstAddr = opts.hostmap.get(info.dstAddr)
+        if (opts.hosts && opts.hosts.size > 0) {
+            info.dstAddr = opts.hosts.get(info.dstAddr)
                 ? opts.target
                 : info.dstAddr;
         }

@@ -39,7 +39,7 @@ async function startServers () {
   https.createServer(httpsServerOptions, app)
     .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'))
 
-  newSocks5Server({ hostmap: appConfig.upstreams.hostmap, target: '0.0.0.0' })
+  newSocks5Server({ hosts: appConfig.upstreams.hostmap, target: '0.0.0.0' })
     .listen(1080, '0.0.0.0',
       () => console.log('[INFO] SOCKS5 Server listening on port 1080'))
 
