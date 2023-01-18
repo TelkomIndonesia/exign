@@ -46,7 +46,7 @@ Steps:
 1. If the remote server you are trying to connect to need to verify the signature, then **distribute** the generated [public key](http://localhost:3000/config/signature/pubkey.pem?dl) to the **administrator of the remote server**. Meanwhile, keep the [private key](http://localhost:3000/config/signature/key.pem) **safe and private**.
 
 1. Setup redirection to exign by doing one of the following:
-    - Use **SOCKS5 proxy** at 127.0.0.1:1080 for all of your HTTP requests.
+    - Use **SOCKS5 proxy** at 127.0.0.1:1080 for all of your HTTP and DNS requests.
     - Change your **DNS resolver** to 127.0.0.1.
     - Add custom host-IP mapping to your hosts file manually.
 
