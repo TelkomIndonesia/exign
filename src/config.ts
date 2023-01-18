@@ -49,6 +49,10 @@ const config = {
 
 function hostmap (str: string) {
   const map = new Map<string, string>()
+  if (!str) {
+    return map
+  }
+
   return str.split(',')
     .reduce((map, str) => {
       const [host, targethost] = str.trim().split(':')
@@ -58,9 +62,13 @@ function hostmap (str: string) {
 }
 
 function doubleDashDomains (str: string) {
+  if (!str) {
+    return []
+  }
+
   return str
-    ?.split(',')
-    .map(v => v.trim()) || []
+    .split(',')
+    .map(v => v.trim())
 }
 
 function file (name: string) {

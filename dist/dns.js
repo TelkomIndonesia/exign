@@ -5,7 +5,7 @@ const tslib_1 = require("tslib");
 const dnsjack_1 = tslib_1.__importDefault(require("dnsjack"));
 function newDNSOverrideServer(opts) {
     const server = dnsjack_1.default.createServer(opts.resolver)
-        .route(opts.hosts, opts.address)
+        .route(opts.hosts && opts.hosts.length > 0 ? opts.hosts : '*', opts.address)
         .on('error', (err) => console.error(`[WARN] DNS resolve error: ${err}`));
     return {
         listen: (port, cb) => {

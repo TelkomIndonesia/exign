@@ -5,9 +5,14 @@ const socks_1 = require("@outtacontrol/socks");
 const None_1 = require("@outtacontrol/socks/lib/auth/None");
 function newSocks5Server(opts) {
     return (0, socks_1.createServer)(function (info, accept) {
-        info.dstAddr = (opts === null || opts === void 0 ? void 0 : opts.hostmap.get(info.dstAddr)) && opts.target
-            ? opts.target
-            : info.dstAddr;
+        if ((opts === null || opts === void 0 ? void 0 : opts.hostmap) && (opts === null || opts === void 0 ? void 0 : opts.hostmap.size) > 0) {
+            info.dstAddr = (opts === null || opts === void 0 ? void 0 : opts.hostmap.get(info.dstAddr)) && opts.target
+                ? opts.target
+                : info.dstAddr;
+        }
+        else {
+            info.dstAddr = (opts === null || opts === void 0 ? void 0 : opts.target) || info.dstAddr;
+        }
         accept();
     })
         .useAuth((0, None_1.None)());
