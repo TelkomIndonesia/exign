@@ -8,13 +8,13 @@ const node_forge_1 = require("node-forge");
 const app_1 = require("./app");
 const pki_1 = require("./pki");
 const config_1 = require("./config");
-const log_app_1 = require("./log-app");
+const mgmt_app_1 = require("./mgmt-app");
 const socks5_1 = require("./socks5");
 const dns_1 = require("./dns");
 function startServers() {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         const appConfig = (0, config_1.newAppConfig)();
-        const { key: caKey, cert: caCert } = (0, pki_1.loadX509Pair)(appConfig.transport.caKey, appConfig.transport.caCertfile);
+        const { key: caKey, cert: caCert } = (0, pki_1.loadX509Pair)(appConfig.transport.caKey, appConfig.transport.caCert);
         const { key: localhostKey, cert: localhostCert } = (0, pki_1.newX509Pair)('localhost', { caKey, caCert });
         function sniCallback(domain, cb) {
             if (process.env.NODE_ENV === 'debug') {
@@ -45,9 +45,17 @@ function startServers() {
             address: appConfig.dns.advertisedAddres,
             resolver: appConfig.dns.resolver
         }).listen(53, () => console.log('[INFO] DNS Server listening on port 53'));
-        const logapp = (0, log_app_1.newLogApp)({ logdb: appConfig.logdb });
-        http_1.default.createServer(logapp)
-            .listen(3000, () => console.log('[INFO] HTTP Config Server running on port 3000'));
+        http_1.default.createServer((0, mgmt_app_1.newMgmtApp)(appConfig))
+            .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'));
+    });
+}
+function init() {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield (0, config_1.generatePKIs)();
+        const mgmtServer = http_1.default.createServer((0, mgmt_app_1.newMgmtApp)((0, config_1.newAppConfig)()))
+            .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'));
+        yield (0, config_1.downloadRemoteConfigs)();
+        mgmtServer.close();
     });
 }
 function main(args) {
@@ -59,9 +67,7 @@ function main(args) {
             if (args[0] !== 'init') {
                 return console.error('Invalid arguments.');
             }
-            yield (0, config_1.generatePKIs)();
-            yield (0, config_1.downloadRemoteConfigs)();
-            return;
+            return init();
         }
         startServers();
     });

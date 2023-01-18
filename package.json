@@ -1,7 +1,7 @@
 {
   "name": "exign",
-  "version": "0.9.0",
-  "description": "local reverse proxy to add signature to received HTTP Requests",
+  "version": "0.10.0",
+  "description": "egress proxy to insert signature to outgoing HTTP Requests",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {

@@ -1,7 +1,7 @@
 x-image:
   &image
   build: .
-  image: exign:0.9.0
+  image: exign:0.10.0
 
 version: "3.0"
 services:
@@ -31,7 +31,7 @@ services:
       - "80:80"
       - "443:443"
       - "1080:1080"
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./config:/src/config
       - ./logs:/src/logs
