@@ -10,13 +10,15 @@ import { pipeline } from 'stream/promises'
 import { sign } from './signature'
 import { digest } from './digest'
 import { Readable } from 'stream'
+import { simpleGit } from 'simple-git'
+
+const configDir = process.env.EXIGN_CONFIG_DIRECTORY || 'config'
 
 const remoteConfig = {
-  url: process.env.EXIGN_REMOTE_CONFIG_URL,
-  directory: process.env.EXIGN_REMOTE_CONFIG_DIRECTORY || './config'
+  url: process.env.EXIGN_REMOTE_CONFIG_URL
 }
 
-dotenv.config({ path: resolve(remoteConfig.directory, '.env') })
+dotenv.config({ path: resolve(configDir, '.env') })
 
 const config = {
   clientBodyBufferSize: process.env.EXIGN_CLIENT_BODY_BUFFER_SIZE || '8192',
@@ -28,15 +30,15 @@ const config = {
   },
 
   signature: {
-    keyfile: process.env.EXIGN_SIGNATURE_KEYFILE || './config/signature/key.pem',
-    pubkeyfile: process.env.EXIGN_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem'
+    keyfile: resolve(configDir, 'signature/key.pem'),
+    pubkeyfile: resolve(configDir, 'signature/pubkey.pem')
   },
   transport: {
-    caKeyfile: process.env.EXIGN_TRANSPORT_CA_KEYFILE || './config/transport/ca-key.pem',
-    caCertfile: process.env.EXIGN_TRANSPORT_CA_CERTFILE || './config/transport/ca.crt'
+    caKeyfile: resolve(configDir, 'transport/ca-key.pem'),
+    caCertfile: resolve(configDir, 'transport/ca.crt')
   },
   logdb: {
-    directory: process.env.EXIGN_LOGDB_DIRECTORY || './logs'
+    directory: process.env.EXIGN_LOGDB_DIRECTORY || 'logs'
   },
   dns: {
     resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
@@ -186,7 +188,7 @@ export async function downloadRemoteConfigs (opts?: downloadRemoteConfigsOptions
     return
   }
 
-  const directory = opts?.directory || remoteConfig.directory
+  const directory = opts?.directory || configDir
   let signature = opts?.signature
   if (!opts) {
     signature = {
@@ -208,5 +210,24 @@ export async function downloadRemoteConfigs (opts?: downloadRemoteConfigsOptions
         }
       }
     }
+  }
+}
+
+export async function commitConfig () {
+  const git = simpleGit({
+    baseDir: configDir,
+    config: ['user.name=exign', "user.email='<>'"]
+  })
+
+  try {
+    await git.init()
+    await git.add('.')
+    const diff = await git.diffSummary(['--cached'])
+    if (diff.files.length === 0) {
+      return
+    }
+    await git.commit('config updated', ['-a'])
+  } catch (err) {
+    console.log('[WARN] Cannot commit config:', err)
   }
 }

@@ -55,6 +55,7 @@ function init() {
         const mgmtServer = http_1.default.createServer((0, mgmt_app_1.newMgmtApp)((0, config_1.newAppConfig)()))
             .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'));
         yield (0, config_1.downloadRemoteConfigs)();
+        yield (0, config_1.commitConfig)();
         mgmtServer.close();
     });
 }

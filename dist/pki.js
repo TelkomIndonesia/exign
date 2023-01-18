@@ -41,7 +41,8 @@ function newX509Pair(domain, opts) {
             digitalSignature: true,
             nonRepudiation: true,
             keyEncipherment: true,
-            dataEncipherment: true
+            dataEncipherment: true,
+            keyCertSign: !(opts === null || opts === void 0 ? void 0 : opts.caKey)
         },
         {
             name: 'extKeyUsage',

@@ -4,7 +4,7 @@ import tls from 'tls'
 import { pki } from 'node-forge'
 import { newApp } from './app'
 import { newX509Pair, loadX509Pair } from './pki'
-import { downloadRemoteConfigs, generatePKIs, newAppConfig } from './config'
+import { commitConfig, downloadRemoteConfigs, generatePKIs, newAppConfig } from './config'
 import { newMgmtApp } from './mgmt-app'
 import { newSocks5Server } from './socks5'
 import { newDNSOverrideServer } from './dns'
@@ -60,6 +60,7 @@ async function init () {
     .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'))
 
   await downloadRemoteConfigs()
+  await commitConfig()
   mgmtServer.close()
 }
 

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadRemoteConfigs = exports.generatePKIs = exports.newAppConfig = void 0;
+exports.commitConfig = exports.downloadRemoteConfigs = exports.generatePKIs = exports.newAppConfig = void 0;
 const tslib_1 = require("tslib");
 const dotenv_1 = tslib_1.__importDefault(require("dotenv"));
 const fs_1 = require("fs");
@@ -14,11 +14,12 @@ const promises_2 = require("stream/promises");
 const signature_1 = require("./signature");
 const digest_1 = require("./digest");
 const stream_1 = require("stream");
+const simple_git_1 = require("simple-git");
+const configDir = process.env.EXIGN_CONFIG_DIRECTORY || 'config';
 const remoteConfig = {
-    url: process.env.EXIGN_REMOTE_CONFIG_URL,
-    directory: process.env.EXIGN_REMOTE_CONFIG_DIRECTORY || './config'
+    url: process.env.EXIGN_REMOTE_CONFIG_URL
 };
-dotenv_1.default.config({ path: (0, path_1.resolve)(remoteConfig.directory, '.env') });
+dotenv_1.default.config({ path: (0, path_1.resolve)(configDir, '.env') });
 const config = {
     clientBodyBufferSize: process.env.EXIGN_CLIENT_BODY_BUFFER_SIZE || '8192',
     upstreams: {
@@ -27,15 +28,15 @@ const config = {
         secure: process.env.EXIGN_UPSTREAMS_SECURE || 'true'
     },
     signature: {
-        keyfile: process.env.EXIGN_SIGNATURE_KEYFILE || './config/signature/key.pem',
-        pubkeyfile: process.env.EXIGN_SIGNATURE_PUBKEYFILE || './config/signature/pubkey.pem'
+        keyfile: (0, path_1.resolve)(configDir, 'signature/key.pem'),
+        pubkeyfile: (0, path_1.resolve)(configDir, 'signature/pubkey.pem')
     },
     transport: {
-        caKeyfile: process.env.EXIGN_TRANSPORT_CA_KEYFILE || './config/transport/ca-key.pem',
-        caCertfile: process.env.EXIGN_TRANSPORT_CA_CERTFILE || './config/transport/ca.crt'
+        caKeyfile: (0, path_1.resolve)(configDir, 'transport/ca-key.pem'),
+        caCertfile: (0, path_1.resolve)(configDir, 'transport/ca.crt')
     },
     logdb: {
-        directory: process.env.EXIGN_LOGDB_DIRECTORY || './logs'
+        directory: process.env.EXIGN_LOGDB_DIRECTORY || 'logs'
     },
     dns: {
         resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
@@ -146,7 +147,7 @@ function downloadRemoteConfigs(opts) {
         if (!url) {
             return;
         }
-        const directory = (opts === null || opts === void 0 ? void 0 : opts.directory) || remoteConfig.directory;
+        const directory = (opts === null || opts === void 0 ? void 0 : opts.directory) || configDir;
         let signature = opts === null || opts === void 0 ? void 0 : opts.signature;
         if (!opts) {
             signature = {
@@ -173,4 +174,25 @@ function downloadRemoteConfigs(opts) {
     });
 }
 exports.downloadRemoteConfigs = downloadRemoteConfigs;
+function commitConfig() {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        const git = (0, simple_git_1.simpleGit)({
+            baseDir: configDir,
+            config: ['user.name=exign', "user.email='<>'"]
+        });
+        try {
+            yield git.init();
+            yield git.add('.');
+            const diff = yield git.diffSummary(['--cached']);
+            if (diff.files.length === 0) {
+                return;
+            }
+            yield git.commit('config updated', ['-a']);
+        }
+        catch (err) {
+            console.log('[WARN] Cannot commit config:', err);
+        }
+    });
+}
+exports.commitConfig = commitConfig;
 //# sourceMappingURL=config.js.map
