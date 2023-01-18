@@ -1,6 +1,6 @@
 interface options {
-    hosts: string[];
     address: string;
+    hosts?: string[];
     port?: number;
     resolver?: string;
 }

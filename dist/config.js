@@ -45,6 +45,9 @@ const config = {
 };
 function hostmap(str) {
     const map = new Map();
+    if (!str) {
+        return map;
+    }
     return str.split(',')
         .reduce((map, str) => {
         const [host, targethost] = str.trim().split(':');
@@ -53,7 +56,12 @@ function hostmap(str) {
     }, map);
 }
 function doubleDashDomains(str) {
-    return (str === null || str === void 0 ? void 0 : str.split(',').map(v => v.trim())) || [];
+    if (!str) {
+        return [];
+    }
+    return str
+        .split(',')
+        .map(v => v.trim());
 }
 function file(name) {
     return (0, fs_1.readFileSync)(name, 'utf-8');
