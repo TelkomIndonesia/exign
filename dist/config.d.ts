@@ -41,4 +41,5 @@ interface downloadRemoteConfigsOptions {
     };
 }
 export declare function downloadRemoteConfigs(opts?: downloadRemoteConfigsOptions): Promise<void>;
+export declare function commitConfig(): Promise<void>;
 export {};
