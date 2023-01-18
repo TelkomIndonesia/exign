@@ -5,14 +5,14 @@ import { pki } from 'node-forge'
 import { newApp } from './app'
 import { newX509Pair, loadX509Pair } from './pki'
 import { downloadRemoteConfigs, generatePKIs, newAppConfig } from './config'
-import { newLogApp } from './log-app'
+import { newMgmtApp } from './mgmt-app'
 import { newSocks5Server } from './socks5'
 import { newDNSOverrideServer } from './dns'
 
 async function startServers () {
   const appConfig = newAppConfig()
 
-  const { key: caKey, cert: caCert } = loadX509Pair(appConfig.transport.caKey, appConfig.transport.caCertfile)
+  const { key: caKey, cert: caCert } = loadX509Pair(appConfig.transport.caKey, appConfig.transport.caCert)
   const { key: localhostKey, cert: localhostCert } = newX509Pair('localhost', { caKey, caCert })
   function sniCallback (domain: string, cb: (err: Error | null, ctx?: tls.SecureContext) => void) {
     if (process.env.NODE_ENV === 'debug') {
@@ -49,9 +49,18 @@ async function startServers () {
     resolver: appConfig.dns.resolver
   }).listen(53, () => console.log('[INFO] DNS Server listening on port 53'))
 
-  const logapp = newLogApp({ logdb: appConfig.logdb })
-  http.createServer(logapp)
-    .listen(3000, () => console.log('[INFO] HTTP Config Server running on port 3000'))
+  http.createServer(newMgmtApp(appConfig))
+    .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'))
+}
+
+async function init () {
+  await generatePKIs()
+
+  const mgmtServer = http.createServer(newMgmtApp(newAppConfig()))
+    .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'))
+
+  await downloadRemoteConfigs()
+  mgmtServer.close()
 }
 
 async function main (args: string[]) {
@@ -64,9 +73,7 @@ async function main (args: string[]) {
       return console.error('Invalid arguments.')
     }
 
-    await generatePKIs()
-    await downloadRemoteConfigs()
-    return
+    return init()
   }
 
   startServers()

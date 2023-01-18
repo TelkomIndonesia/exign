@@ -10,7 +10,7 @@ function newDNSOverrideServer(opts) {
     return {
         listen: (port, cb) => {
             server.listen(port);
-            cb && cb();
+            cb && setImmediate(cb);
         },
         close: (cb) => server.close(cb)
     };

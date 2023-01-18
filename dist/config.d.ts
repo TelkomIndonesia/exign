@@ -11,7 +11,7 @@ export declare function newAppConfig(): {
     };
     transport: {
         caKey: string;
-        caCertfile: string;
+        caCert: string;
     };
     logdb: {
         directory: string;

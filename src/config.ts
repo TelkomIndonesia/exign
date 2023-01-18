@@ -85,7 +85,7 @@ export function newAppConfig () {
     },
     transport: {
       caKey: file(config.transport.caKeyfile),
-      caCertfile: file(config.transport.caCertfile)
+      caCert: file(config.transport.caCertfile)
     },
     logdb: {
       directory: dir(config.logdb.directory)
