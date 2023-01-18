@@ -48,7 +48,8 @@ export function newX509Pair (domain: string, opts?: createCertOptions): x509Pair
       digitalSignature: true,
       nonRepudiation: true,
       keyEncipherment: true,
-      dataEncipherment: true
+      dataEncipherment: true,
+      keyCertSign: !opts?.caKey
     },
     {
       name: 'extKeyUsage',
