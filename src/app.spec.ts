@@ -6,6 +6,7 @@ import { noVerifyHeaders } from './signature'
 import { newApp } from './app'
 import { Application } from 'express'
 import { ulid } from 'ulid'
+import { LogDB } from './log'
 
 const testKey = {
   private: `
@@ -56,9 +57,7 @@ function newTestApp (): { app: Application } {
       key: testKey.private,
       pubkey: testKey.public
     },
-    logdb: {
-      directory: 'logs'
-    }
+    logDB: new LogDB({ directory: 'logs' })
   })
   return { app }
 }
