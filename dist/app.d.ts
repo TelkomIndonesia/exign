@@ -4,7 +4,11 @@ interface AppOptions {
         key: string;
         pubkey: string;
     };
-    clientBodyBufferSize: number;
+    digest: {
+        memBufferSize: number;
+        fileBufferPoolMin: number;
+        fileBufferPoolMax: number;
+    };
     upstreams: {
         doubleDashDomains: string[];
         hostmap: Map<string, string>;

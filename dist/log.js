@@ -11,7 +11,7 @@ const ulid_1 = require("ulid");
 const promises_1 = require("fs/promises");
 const stream_1 = require("stream");
 const zlib_1 = require("zlib");
-exports.messageIDHeader = 'x-message-id';
+exports.messageIDHeader = 'x-exign-id';
 function attachID(req) {
     const id = (0, ulid_1.ulid)();
     req.setHeader(exports.messageIDHeader, id);
@@ -27,7 +27,7 @@ function consoleLog(req) {
                     method: req.method,
                     url: `${req.protocol}//${req.host}${req.path}`,
                     headers: {
-                        requestIDHeader: req.getHeader('x-request-id'),
+                        [exports.messageIDHeader]: req.getHeader(exports.messageIDHeader),
                         digest: req.getHeader('digest'),
                         [signature_1.signatureHeader]: req.getHeader(signature_1.signatureHeader)
                     }

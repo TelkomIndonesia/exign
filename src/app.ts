@@ -3,7 +3,7 @@ import { sign } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { Agent as HTTPAgent } from 'http'
-import { digest, restream } from './digest'
+import { digest, Restreamer } from './digest'
 import { attachID, consoleLog, messageIDHeader, newHTTPMessageLogger } from './log'
 import { Agent as HTTPSAgent } from 'https'
 import { errorMW } from './error'
@@ -13,7 +13,11 @@ interface AppOptions {
     key: string,
     pubkey: string
   },
-  clientBodyBufferSize: number
+  digest: {
+    memBufferSize: number
+    fileBufferPoolMin: number,
+    fileBufferPoolMax: number,
+  },
   upstreams: {
     doubleDashDomains: string[]
     hostmap: Map<string, string>,
@@ -26,6 +30,8 @@ interface AppOptions {
 
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
   const logMessage = newHTTPMessageLogger(opts.logdb)
+  const restreamer = new Restreamer(opts.digest)
+  process.on('exit', () => restreamer.close())
 
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq, req, res) {
@@ -45,11 +51,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
   const httpsagent = new HTTPSAgent({ keepAlive: true })
 
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
-    const [digestValue, body] = await Promise.all([
-      digest(req),
-      restream(req, { bufferSize: opts.clientBodyBufferSize })
-    ])
-    res.once('close', () => body.destroy())
+    const [digestValue, body] = await Promise.all([digest(req), restreamer.restream(req)])
 
     const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
       await mapDoubleDashHostname(req.hostname, opts.upstreams.doubleDashDomains) ||

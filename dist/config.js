@@ -21,7 +21,11 @@ const remoteConfig = {
 };
 dotenv_1.default.config({ path: (0, path_1.resolve)(configDir, '.env') });
 const config = {
-    clientBodyBufferSize: process.env.EXIGN_CLIENT_BODY_BUFFER_SIZE || '8192',
+    digest: {
+        memBufferSize: process.env.EXIGN_DIGEST_MEMORY_BUFFER_SIZE || '8192',
+        fileBufferPoolMin: process.env.EXIGN_DIGEST_FILE_BUFFER_POOL_MIN || '8',
+        fileBufferPoolMax: process.env.EXIGN_DIGEST_FILE_BUFFER_POOL_MAX || '1024'
+    },
     upstreams: {
         hostmap: process.env.EXIGN_UPSTREAMS_HOSTMAP || '',
         doubleDashDomains: process.env.EXIGN_UPSTREAMS_DOUBLEDASH_DOMAINS || '',
@@ -72,7 +76,11 @@ function dir(name) {
 }
 function newAppConfig() {
     return {
-        clientBodyBufferSize: parseInt(config.clientBodyBufferSize),
+        digest: {
+            memBufferSize: parseInt(config.digest.memBufferSize),
+            fileBufferPoolMin: parseInt(config.digest.fileBufferPoolMin),
+            fileBufferPoolMax: parseInt(config.digest.fileBufferPoolMax)
+        },
         upstreams: {
             hostmap: hostmap(config.upstreams.hostmap),
             doubleDashDomains: doubleDashDomains(config.upstreams.doubleDashDomains),

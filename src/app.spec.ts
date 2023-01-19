@@ -47,7 +47,11 @@ function newTestApp (): { app: Application } {
       doubleDashDomains: ['domain.test'],
       secure: true
     },
-    clientBodyBufferSize: 32,
+    digest: {
+      memBufferSize: 32,
+      fileBufferPoolMin: 8,
+      fileBufferPoolMax: 8
+    },
     signature: {
       key: testKey.private,
       pubkey: testKey.public

@@ -1,5 +1,9 @@
 export declare function newAppConfig(): {
-    clientBodyBufferSize: number;
+    digest: {
+        memBufferSize: number;
+        fileBufferPoolMin: number;
+        fileBufferPoolMax: number;
+    };
     upstreams: {
         hostmap: Map<string, string>;
         doubleDashDomains: string[];

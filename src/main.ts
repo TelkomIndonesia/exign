@@ -1,5 +1,5 @@
 import http from 'http'
-import https from 'https'
+import https, { ServerOptions } from 'https'
 import tls from 'tls'
 import { pki } from 'node-forge'
 import { newApp } from './app'
@@ -26,7 +26,7 @@ async function startServers () {
       ca: pki.certificateToPem(caCert)
     }).context)
   }
-  const httpsServerOptions = {
+  const httpsServerOptions : ServerOptions = {
     SNICallback: sniCallback,
     key: pki.privateKeyToPem(localhostKey),
     cert: pki.certificateToPem(localhostCert),
@@ -39,7 +39,7 @@ async function startServers () {
   https.createServer(httpsServerOptions, app)
     .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'))
 
-  newSocks5Server({ hostmap: appConfig.upstreams.hostmap, target: '0.0.0.0' })
+  newSocks5Server({ hosts: appConfig.upstreams.hostmap, target: '0.0.0.0' })
     .listen(1080, '0.0.0.0',
       () => console.log('[INFO] SOCKS5 Server listening on port 1080'))
 
