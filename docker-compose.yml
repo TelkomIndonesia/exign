@@ -33,23 +33,8 @@ services:
     volumes:
       - ./config:/src/config
       - ./logs:/src/logs
-    healthcheck: 
-      test: [CMD, curl, -s, "localhost:3000/index.html"]
+    healthcheck:
+      test: [ CMD, curl, -s, "localhost:3000/index.html" ]
       start_period: 10s
       interval: 3s
       retries: 100
-
-  connection-test:
-    <<: *image
-    restart: on-failure
-    depends_on:
-      exign:
-        condition: service_healthy
-    environment:
-      SOCKS5_PROXY_ENDPOINT: exign:1080
-      EXIGN_HOSTNAME: exign
-    volumes:
-      - ./config:/src/config
-    entrypoint: [ bash, -c ]
-    command:
-      - ./scripts/append-hosts.sh && ./scripts/connection-test.sh
