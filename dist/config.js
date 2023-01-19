@@ -140,7 +140,7 @@ function downloadIfExists(url, location, opts) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         yield (0, promises_1.mkdir)((0, path_1.dirname)(location), { recursive: true });
         const request = url.protocol === 'http:' ? http_1.request : https_1.request;
-        const agent = url.protocol === 'https:' && !config.upstreams.secure ? new https_1.Agent({ rejectUnauthorized: false }) : undefined;
+        const agent = url.protocol === 'https:' && config.upstreams.secure === 'false' ? new https_1.Agent({ rejectUnauthorized: false }) : undefined;
         const req = request(url, { agent });
         if (opts === null || opts === void 0 ? void 0 : opts.signature) {
             req.setHeader('digest', yield (0, digest_1.digest)(stream_1.Readable.from([], { objectMode: false })));

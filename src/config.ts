@@ -165,7 +165,7 @@ interface downloadOptions {
 async function downloadIfExists (url: URL, location: string, opts?: downloadOptions) {
   await mkdir(dirname(location), { recursive: true })
   const request = url.protocol === 'http:' ? requestHTTP : requestHTTPS
-  const agent = url.protocol === 'https:' && !config.upstreams.secure ? new AgentHTTPS({ rejectUnauthorized: false }) : undefined
+  const agent = url.protocol === 'https:' && config.upstreams.secure === 'false' ? new AgentHTTPS({ rejectUnauthorized: false }) : undefined
   const req = request(url, { agent })
   if (opts?.signature) {
     req.setHeader('digest', await digest(Readable.from([], { objectMode: false })))
