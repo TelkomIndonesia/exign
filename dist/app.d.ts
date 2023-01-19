@@ -1,4 +1,5 @@
 import { Application } from 'express';
+import { LogDB } from './log';
 interface AppOptions {
     signature: {
         key: string;
@@ -14,9 +15,7 @@ interface AppOptions {
         hostmap: Map<string, string>;
         secure: boolean;
     };
-    logdb: {
-        directory: string;
-    };
+    logDB: LogDB;
 }
 export declare function newApp(opts: AppOptions): Application;
 export {};

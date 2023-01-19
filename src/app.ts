@@ -4,7 +4,7 @@ import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
 import { Agent as HTTPAgent } from 'http'
 import { digest, Restreamer } from './digest'
-import { attachID, consoleLog, messageIDHeader, newHTTPMessageLogger } from './log'
+import { attachID, consoleLog, LogDB, messageIDHeader } from './log'
 import { Agent as HTTPSAgent } from 'https'
 import { errorMW } from './error'
 
@@ -23,15 +23,14 @@ interface AppOptions {
     hostmap: Map<string, string>,
     secure: boolean
   }
-  logdb: {
-    directory: string
-  }
+  logDB: LogDB
 }
 
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
-  const logMessage = newHTTPMessageLogger(opts.logdb)
   const restreamer = new Restreamer(opts.digest)
   process.on('exit', () => restreamer.close())
+
+  const logDB = opts.logDB
 
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq, req, res) {
@@ -40,9 +39,10 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       }
 
       res.setHeader(messageIDHeader, attachID(proxyReq))
-      consoleLog(proxyReq)
-      logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
       sign(proxyReq, opts.signature)
+
+      consoleLog(proxyReq)
+      logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
     })
     .on('proxyRes', (proxyRes, _, res) => {
       proxyRes.on('end', () => res.addTrailers(proxyRes.trailers))

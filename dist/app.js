@@ -12,18 +12,18 @@ const log_1 = require("./log");
 const https_1 = require("https");
 const error_1 = require("./error");
 function newSignatureProxyHandler(opts) {
-    const logMessage = (0, log_1.newHTTPMessageLogger)(opts.logdb);
     const restreamer = new digest_1.Restreamer(opts.digest);
     process.on('exit', () => restreamer.close());
+    const logDB = opts.logDB;
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq, req, res) {
         if (proxyReq.getHeader('content-length') === '0') {
             proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
         }
         res.setHeader(log_1.messageIDHeader, (0, log_1.attachID)(proxyReq));
-        (0, log_1.consoleLog)(proxyReq);
-        logMessage(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
         (0, signature_1.sign)(proxyReq, opts.signature);
+        (0, log_1.consoleLog)(proxyReq);
+        logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
     })
         .on('proxyRes', (proxyRes, _, res) => {
         proxyRes.on('end', () => res.addTrailers(proxyRes.trailers));

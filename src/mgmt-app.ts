@@ -1,7 +1,7 @@
 import express, { Application } from 'express'
 import { pipeline } from 'stream/promises'
 import { errorMW } from './error'
-import { newHTTPMessageFinder } from './log'
+import { LogDB } from './log'
 
 interface mgmtAppOptions {
   signature: {
@@ -12,17 +12,14 @@ interface mgmtAppOptions {
     caKey: string,
     caCert: string,
   },
-  logdb: {
-    directory: string
-  }
+  logDB: LogDB
 }
 
 export function newMgmtApp (opts: mgmtAppOptions): Application {
   const app = express()
 
-  const findHTTPMessage = newHTTPMessageFinder(opts.logdb)
   app.get('/messages/:id', async (req, res) => {
-    const msg = await findHTTPMessage({ id: req.params.id }, { decodeBody: req.query['decode-body'] === 'true' })
+    const msg = await opts.logDB.find({ id: req.params.id }, { decodeBody: req.query['decode-body'] === 'true' })
     if (!msg) {
       return res.status(404).send('not found')
     }

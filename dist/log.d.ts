@@ -1,31 +1,30 @@
 /// <reference types="node" />
 /// <reference types="node" />
-/// <reference types="node" />
 import { ClientRequest } from 'http';
-import { Level } from 'level';
 import { PassThrough } from 'stream';
 export declare const messageIDHeader = "x-exign-id";
 export declare function attachID(req: ClientRequest): string;
 export declare function consoleLog(req: ClientRequest): void;
-interface newLogDBOptions {
+interface LogDBOptions {
     directory: string;
 }
 interface ClientRequestLine {
     url: string;
     httpVersion: string;
 }
-export declare function newHTTPMessageLogger(opts: newLogDBOptions): {
-    (req: ClientRequest, reqLine: ClientRequestLine): Promise<void>;
-    db: Level<string, Buffer>;
-};
-interface httpMessageQuery {
+interface LogDBFindQuery {
     id: string;
 }
-interface httpMesageFindOptions {
+interface LogDBFindOptions {
     decodeBody?: boolean;
 }
-export declare function newHTTPMessageFinder(opts: newLogDBOptions): {
-    (query: httpMessageQuery, fopts?: httpMesageFindOptions): Promise<PassThrough | undefined>;
-    dbs: Map<string, Level<string, Buffer>>;
-};
+export declare class LogDB {
+    private directory;
+    private databases;
+    constructor(opts: LogDBOptions);
+    private getDB;
+    log(req: ClientRequest, reqLine: ClientRequestLine): Promise<void>;
+    find(query: LogDBFindQuery, fopts?: LogDBFindOptions): Promise<PassThrough | undefined>;
+    close(): Promise<void>;
+}
 export {};

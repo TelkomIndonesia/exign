@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'fs/promises'
 import { IncomingMessage } from 'http'
 import { request } from 'https'
-import { attachID, newHTTPMessageFinder, newHTTPMessageLogger, messageIDHeader } from './log'
+import { attachID, messageIDHeader, LogDB } from './log'
 
 test('find message', async function () {
   const opts = { directory: './logs/tests' }
@@ -18,8 +18,8 @@ test('find message', async function () {
   })
   attachID(req)
 
-  const logMessage = newHTTPMessageLogger(opts)
-  logMessage(req, { url: '/requests', httpVersion: '1.1' })
+  const logDB = new LogDB(opts)
+  logDB.log(req, { url: '/requests', httpVersion: '1.1' })
   expect(req.getHeader(messageIDHeader)).toBeDefined()
 
   req.write(JSON.stringify({ test: true }))
@@ -27,8 +27,7 @@ test('find message', async function () {
   await new Promise<IncomingMessage>((resolve, reject) =>
     req.on('error', reject).on('response', res => res.on('close', resolve).resume()))
 
-  const find = newHTTPMessageFinder(opts)
-  const readable = await find({ id: req.getHeader(messageIDHeader) as string }, { decodeBody: true })
+  const readable = await logDB.find({ id: req.getHeader(messageIDHeader) as string }, { decodeBody: true })
   expect(readable).toBeTruthy()
   if (!readable) return
 
@@ -38,6 +37,6 @@ test('find message', async function () {
   expect(record).toContain(req.getHeader(messageIDHeader))
   console.log(record)
 
-  for (const db of find.dbs.values()) await db.close()
+  await logDB.close()
   await rm(opts.directory, { recursive: true, force: true })
 }, 10000)

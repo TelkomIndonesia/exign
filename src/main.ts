@@ -8,11 +8,13 @@ import { commitConfig, downloadRemoteConfigs, generatePKIs, newAppConfig } from 
 import { newMgmtApp } from './mgmt-app'
 import { newSocks5Server } from './socks5'
 import { newDNSOverrideServer } from './dns'
+import { LogDB } from './log'
 
 async function startServers () {
-  const appConfig = newAppConfig()
+  const cfg = newAppConfig()
+  const logDB = new LogDB(cfg.logdb)
 
-  const { key: caKey, cert: caCert } = loadX509Pair(appConfig.transport.caKey, appConfig.transport.caCert)
+  const { key: caKey, cert: caCert } = loadX509Pair(cfg.transport.caKey, cfg.transport.caCert)
   const { key: localhostKey, cert: localhostCert } = newX509Pair('localhost', { caKey, caCert })
   function sniCallback (domain: string, cb: (err: Error | null, ctx?: tls.SecureContext) => void) {
     if (process.env.NODE_ENV === 'debug') {
@@ -33,34 +35,37 @@ async function startServers () {
     ca: pki.certificateToPem(caCert)
   }
 
-  const app = newApp(appConfig)
+  const app = newApp({ ...cfg, logDB })
   http.createServer(app)
     .listen(80, () => console.log('[INFO] HTTP Server running on port 80'))
   https.createServer(httpsServerOptions, app)
     .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'))
 
-  newSocks5Server({ hosts: appConfig.upstreams.hostmap, target: '0.0.0.0' })
+  newSocks5Server({ hosts: cfg.upstreams.hostmap, target: '0.0.0.0' })
     .listen(1080, '0.0.0.0',
       () => console.log('[INFO] SOCKS5 Server listening on port 1080'))
 
   newDNSOverrideServer({
-    hosts: Array.from(appConfig.upstreams.hostmap.keys()),
-    address: appConfig.dns.advertisedAddres,
-    resolver: appConfig.dns.resolver
+    hosts: Array.from(cfg.upstreams.hostmap.keys()),
+    address: cfg.dns.advertisedAddres,
+    resolver: cfg.dns.resolver
   }).listen(53, () => console.log('[INFO] DNS Server listening on port 53'))
 
-  http.createServer(newMgmtApp(appConfig))
+  http.createServer(newMgmtApp({ ...cfg, logDB }))
     .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'))
 }
 
 async function init () {
   await generatePKIs()
 
-  const mgmtServer = http.createServer(newMgmtApp(newAppConfig()))
+  const cfg = newAppConfig()
+  const logDB = new LogDB(cfg.logdb)
+  const mgmtServer = http.createServer(newMgmtApp({ ...cfg, logDB }))
     .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'))
 
   await downloadRemoteConfigs()
   await commitConfig()
+  logDB.close()
   mgmtServer.close()
 }
 

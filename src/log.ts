@@ -1,11 +1,10 @@
 import { ClientRequest, IncomingHttpHeaders, IncomingMessage, OutgoingHttpHeaders } from 'http'
-import { Level } from 'level'
+import { Level, OpenOptions } from 'level'
 import { resolve } from 'path'
 import { signatureHeader } from './signature'
 import logfmt from 'logfmt'
 import { flatten } from 'flat'
 import { decodeTime, ulid } from 'ulid'
-import { readdir } from 'fs/promises'
 import { PassThrough, Writable } from 'stream'
 import { createBrotliDecompress, createGunzip, createInflate } from 'zlib'
 
@@ -46,25 +45,6 @@ function pad (n: number, length: number) {
   return n.toString().padStart(length, '0')
 }
 
-function dbName (date?: Date) {
-  date = date || new Date()
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1, 2)}-${date.getDate()}`
-}
-
-const databases = new Map<string, Level<string, Buffer>>()
-interface newLogDBOptions {
-  directory: string
-}
-function newLogDB (date: Date, opts: newLogDBOptions) {
-  const name = dbName(date)
-  let db = databases.get(name)
-  if (!db) {
-    db = new Level<string, Buffer>(resolve(opts.directory, name), { valueEncoding: 'buffer' })
-    databases.set(name, db)
-  }
-  return db
-}
-
 function headersToString (headers: IncomingHttpHeaders | OutgoingHttpHeaders) {
   return Object.entries(headers)
     .reduce((str, [name, value]) => {
@@ -72,15 +52,58 @@ function headersToString (headers: IncomingHttpHeaders | OutgoingHttpHeaders) {
     }, '') + '\r\n'
 }
 
+function logDBName (date?: Date) {
+  date = date || new Date()
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1, 2)}-${date.getDate()}`
+}
+
+interface LogDBOptions {
+  directory: string
+}
 interface ClientRequestLine {
   url: string
   httpVersion: string
 }
-export function newHTTPMessageLogger (opts: newLogDBOptions) {
-  const db = newLogDB(new Date(), opts)
-  const fn = async function logHTTPMessage (req: ClientRequest, reqLine: ClientRequestLine) {
+interface LogDBFindQuery {
+  id: string
+}
+interface LogDBFindOptions {
+  decodeBody?: boolean
+}
+export class LogDB {
+  private directory: string
+  private databases: Map<string, Level<string, Buffer>>
+
+  constructor (opts: LogDBOptions) {
+    this.directory = opts.directory
+    this.databases = new Map()
+  }
+
+  private async getDB (date?: Date, opts?: OpenOptions) {
+    const name = logDBName(date)
+    let db = this.databases.get(name)
+    if (!db) {
+      try {
+        db = new Level<string, Buffer>(resolve(this.directory, name), { ...opts, valueEncoding: 'buffer' })
+        this.databases.set(name, db)
+        await db.open()
+      } catch (err) {
+        console.error('[ERROR] failed opening level DB: ', err)
+        this.databases.delete(name)
+        return
+      }
+    }
+    return db
+  }
+
+  async log (req: ClientRequest, reqLine: ClientRequestLine) {
     const id = req.getHeader(messageIDHeader)
     if (!id) {
+      return
+    }
+
+    const db = await this.getDB()
+    if (!db) {
       return
     }
 
@@ -96,8 +119,8 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
     req.on('finish', () => db.put(`${id}-req-2`, Buffer.from('\r\n'))) // reserved for req trailers
 
     db.put(`${id}-req-0`, Buffer.from(
-      `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion}\r\n` +
-        headersToString(req.getHeaders())
+      `${req.method.toUpperCase()} ${reqLine.url} HTTP/${reqLine.httpVersion || '1.1'}\r\n` +
+      headersToString(req.getHeaders())
     ))
 
     let j = 0; const res = await new Promise<IncomingMessage>((resolve, reject) => req
@@ -109,99 +132,79 @@ export function newHTTPMessageLogger (opts: newLogDBOptions) {
     )
 
     db.put(`${id}-res-0`, Buffer.from(
-        `HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}\r\n` +
-        headersToString(res.headers)
+      `HTTP/${res.httpVersion} ${res.statusCode || 0} ${res.statusMessage || 'Empty'}\r\n` +
+      headersToString(res.headers)
     ))
 
     res.on('end', () => {
       res.trailers && db.put(`${id}-res-2`, Buffer.from(headersToString(res.trailers)))
     })
   }
-  fn.db = db
 
-  return fn
-}
-
-interface httpMessageQuery {
-  id: string
-}
-interface httpMesageFindOptions {
-  decodeBody?: boolean
-}
-export function newHTTPMessageFinder (opts: newLogDBOptions) {
-  const dbDates = readdir(opts.directory, { withFileTypes: true })
-    .then(entries => entries
-      .reduce((arr, v) => {
-        if (!v.isDirectory()) {
-          return arr
-        }
-
-        arr.push(new Date(Date.parse(v.name)))
-        return arr
-      }, [] as Date[])
-    )
-
-  const fn = async function findHTTPMessage (query: httpMessageQuery, fopts?: httpMesageFindOptions) {
+  async find (query: LogDBFindQuery, fopts?: LogDBFindOptions) {
     const date = new Date(decodeTime(query.id))
-
-    let dbDate: Date | undefined
-    for (const d of await dbDates) {
-      if (dbDate && d.getTime() < dbDate.getTime()) {
-        continue
-      }
-      if (d.getTime() > date.getTime()) {
-        continue
-      }
-
-      dbDate = d
-    }
-    if (!dbDate) {
+    const db = await this.getDB(date, { createIfMissing: false })
+    if (!db) {
       return
     }
 
-    const db = newLogDB(dbDate, opts)
+    const filter = { gt: query.id, lt: query.id + '_' }
+    const keys = await db.keys({ ...filter, limit: 1 }).all()
+    if (!keys || keys.length < 1) {
+      return
+    }
 
     const stream = new PassThrough()
-    let decoder: Writable | undefined
-    for await (const [key, value] of db.iterator({ gt: query.id, lt: query.id + '_' })) {
-      if (key.endsWith('-req-2') || key.endsWith('-res-2')) {
-        if (decoder) {
-          await new Promise((resolve, reject) => {
-            decoder?.on('close', resolve).on('error', reject).end()
-          })
-          decoder = undefined
-        }
-        stream.write('\r\n') // add newline after body
-      }
-
-      const w = decoder || stream
-      w.write(value) || await new Promise(resolve => stream.on('drain', resolve))
-
-      if (fopts?.decodeBody && key.endsWith('-0')) {
-        const enc = value.toString().split('\r\n').reduce((s, v) => {
-          const [name, value] = v.split(':', 2)
-          if (name.trim().toLowerCase() !== 'content-encoding') {
-            return s
+    const pipeLog = async function pipeLog () {
+      let decoder: Writable | undefined
+      for await (const [key, value] of db.iterator(filter)) {
+        if (key.endsWith('-req-2') || key.endsWith('-res-2')) {
+          if (decoder) {
+            await new Promise((resolve, reject) => decoder?.on('close', resolve).on('error', reject).end())
+            decoder = undefined
           }
-          return value.trim().toLowerCase()
-        })
-        switch (enc) {
-          case 'gzip':
-            decoder = createGunzip(); break
-          case 'br':
-            decoder = createBrotliDecompress(); break
-          case 'deflate':
-            decoder = createInflate(); break
+          stream.write('\r\n') // add newline after body
         }
-        decoder && decoder.pipe(stream, { end: false })
-        stream.on('error', () => decoder?.destroy())
+
+        const w = decoder || stream
+        w.write(value) || await new Promise(resolve => stream.on('drain', resolve))
+
+        if (fopts?.decodeBody && key.endsWith('-0')) {
+          const enc = value.toString().split('\r\n').reduce((s, v) => {
+            const [name, value] = v.split(':', 2)
+            if (name.trim().toLowerCase() !== 'content-encoding') {
+              return s
+            }
+            return value.trim().toLowerCase()
+          })
+          switch (enc) {
+            case 'gzip': decoder = createGunzip(); break
+            case 'br': decoder = createBrotliDecompress(); break
+            case 'deflate': decoder = createInflate(); break
+          }
+          decoder && decoder.pipe(stream, { end: false })
+          stream.on('error', () => decoder?.destroy())
+        }
       }
+
+      stream.end()
     }
-    stream.end()
+
+    setImmediate(async () => {
+      try {
+        await pipeLog()
+      } catch (err) {
+        console.error('[ERROR] fail to pipe log from db: ', err)
+      }
+    })
 
     return stream
   }
-  fn.dbs = databases
 
-  return fn
+  async close () {
+    for (const db of this.databases.values()) {
+      await db.close()
+    }
+    this.databases.clear()
+  }
 }

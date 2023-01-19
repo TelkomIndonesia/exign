@@ -1,4 +1,5 @@
 import { Application } from 'express';
+import { LogDB } from './log';
 interface mgmtAppOptions {
     signature: {
         key: string;
@@ -8,9 +9,7 @@ interface mgmtAppOptions {
         caKey: string;
         caCert: string;
     };
-    logdb: {
-        directory: string;
-    };
+    logDB: LogDB;
 }
 export declare function newMgmtApp(opts: mgmtAppOptions): Application;
 export {};
