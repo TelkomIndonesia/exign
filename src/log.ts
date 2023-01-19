@@ -9,7 +9,7 @@ import { readdir } from 'fs/promises'
 import { PassThrough, Writable } from 'stream'
 import { createBrotliDecompress, createGunzip, createInflate } from 'zlib'
 
-export const messageIDHeader = 'x-message-id'
+export const messageIDHeader = 'x-exign-id'
 
 export function attachID (req: ClientRequest) {
   const id = ulid()
@@ -26,7 +26,7 @@ export function consoleLog (req: ClientRequest) {
           method: req.method,
           url: `${req.protocol}//${req.host}${req.path}`,
           headers: {
-            requestIDHeader: req.getHeader('x-request-id'),
+            [messageIDHeader]: req.getHeader(messageIDHeader),
             digest: req.getHeader('digest'),
             [signatureHeader]: req.getHeader(signatureHeader)
           }

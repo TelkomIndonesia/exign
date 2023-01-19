@@ -9,13 +9,15 @@ services:
     <<: *image
     restart: unless-stopped
     environment:
-      EXIGN_CLIENT_BODY_BUFFER_SIZE:
+      EXIGN_DIGEST_MEMORY_BUFFER_SIZE:
+      EXIGN_DIGEST_FILE_BUFFER_POOL_MIN:
+      EXIGN_DIGEST_FILE_BUFFER_POOL_MAX:
       EXIGN_UPSTREAMS_DOUBLEDASH_DOMAINS:
       EXIGN_UPSTREAMS_HOSTMAP:
       EXIGN_UPSTREAMS_SECURE:
       EXIGN_CONFIG_DIRECTORY:
       EXIGN_REMOTE_CONFIG_URL:
-      EXIGN_DNS_RESOLVER: 127.0.0.11 # use docker internal server
+      EXIGN_DNS_RESOLVER: ${EXIGN_DNS_RESOLVER:-127.0.0.11} # default use docker compose dns server
 
       NODE_EXTRA_CA_CERTS: /src/config/upstream-transport/ca.crt
     dns:

@@ -4,7 +4,7 @@
 import { ClientRequest } from 'http';
 import { Level } from 'level';
 import { PassThrough } from 'stream';
-export declare const messageIDHeader = "x-message-id";
+export declare const messageIDHeader = "x-exign-id";
 export declare function attachID(req: ClientRequest): string;
 export declare function consoleLog(req: ClientRequest): void;
 interface newLogDBOptions {

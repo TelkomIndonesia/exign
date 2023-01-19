@@ -13,6 +13,8 @@ const https_1 = require("https");
 const error_1 = require("./error");
 function newSignatureProxyHandler(opts) {
     const logMessage = (0, log_1.newHTTPMessageLogger)(opts.logdb);
+    const restreamer = new digest_1.Restreamer(opts.digest);
+    process.on('exit', () => restreamer.close());
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq, req, res) {
         if (proxyReq.getHeader('content-length') === '0') {
@@ -30,11 +32,7 @@ function newSignatureProxyHandler(opts) {
     const httpsagent = new https_1.Agent({ keepAlive: true });
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const [digestValue, body] = yield Promise.all([
-                (0, digest_1.digest)(req),
-                (0, digest_1.restream)(req, { bufferSize: opts.clientBodyBufferSize })
-            ]);
-            res.once('close', () => body.destroy());
+            const [digestValue, body] = yield Promise.all([(0, digest_1.digest)(req), restreamer.restream(req)]);
             const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
                 (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.upstreams.doubleDashDomains)) ||
                 req.hostname;
