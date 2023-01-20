@@ -41,9 +41,11 @@ async function startServers () {
   https.createServer(httpsServerOptions, app)
     .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'))
 
-  newSocks5Server({ hosts: cfg.upstreams.hostmap, target: '0.0.0.0' })
-    .listen(1080, '0.0.0.0',
-      () => console.log('[INFO] SOCKS5 Server listening on port 1080'))
+  newSocks5Server({
+    target: '0.0.0.0',
+    hosts: cfg.upstreams.hostmap,
+    ports: new Map([[80, true], [443, true]])
+  }).listen(1080, '0.0.0.0', () => console.log('[INFO] SOCKS5 Server listening on port 1080'))
 
   newDNSOverrideServer({
     hosts: Array.from(cfg.upstreams.hostmap.keys()),

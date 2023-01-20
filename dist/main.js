@@ -40,8 +40,11 @@ function startServers() {
             .listen(80, () => console.log('[INFO] HTTP Server running on port 80'));
         https_1.default.createServer(httpsServerOptions, app)
             .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'));
-        (0, socks5_1.newSocks5Server)({ hosts: cfg.upstreams.hostmap, target: '0.0.0.0' })
-            .listen(1080, '0.0.0.0', () => console.log('[INFO] SOCKS5 Server listening on port 1080'));
+        (0, socks5_1.newSocks5Server)({
+            target: '0.0.0.0',
+            hosts: cfg.upstreams.hostmap,
+            ports: new Map([[80, true], [443, true]])
+        }).listen(1080, '0.0.0.0', () => console.log('[INFO] SOCKS5 Server listening on port 1080'));
         (0, dns_1.newDNSOverrideServer)({
             hosts: Array.from(cfg.upstreams.hostmap.keys()),
             address: cfg.dns.advertisedAddres,
