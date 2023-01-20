@@ -1,6 +1,6 @@
 {
   "name": "exign",
-  "version": "0.12.3",
+  "version": "0.12.4",
   "description": "egress proxy to insert signature to outgoing HTTP Requests",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
