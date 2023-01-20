@@ -70,10 +70,6 @@ function doubleDashDomains(str) {
 function file(name) {
     return (0, fs_1.readFileSync)(name, 'utf-8');
 }
-function dir(name) {
-    (0, fs_1.mkdirSync)(name, { recursive: true });
-    return name;
-}
 function newAppConfig() {
     return {
         digest: {
@@ -95,7 +91,7 @@ function newAppConfig() {
             caCert: file(config.transport.caCertfile)
         },
         logdb: {
-            directory: dir(config.logdb.directory)
+            directory: config.logdb.directory
         },
         dns: config.dns
     };

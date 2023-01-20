@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { mkdirSync, readFileSync, createWriteStream } from 'fs'
+import { readFileSync, createWriteStream } from 'fs'
 import { mkdir, open, readFile } from 'fs/promises'
 import { pki } from 'node-forge'
 import { dirname, resolve } from 'path'
@@ -76,11 +76,6 @@ function file (name: string) {
   return readFileSync(name, 'utf-8')
 }
 
-function dir (name: string) {
-  mkdirSync(name, { recursive: true })
-  return name
-}
-
 export function newAppConfig () {
   return {
     digest: {
@@ -102,7 +97,7 @@ export function newAppConfig () {
       caCert: file(config.transport.caCertfile)
     },
     logdb: {
-      directory: dir(config.logdb.directory)
+      directory: config.logdb.directory
     },
     dns: config.dns
   }

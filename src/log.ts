@@ -104,7 +104,7 @@ export class LogDB {
 
     const db = await this.getDB()
     if (!db) {
-      return
+      throw new Error('[FATAL] Can not open LogDB')
     }
 
     /* eslint-disable @typescript-eslint/no-explicit-any */

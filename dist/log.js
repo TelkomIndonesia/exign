@@ -87,7 +87,7 @@ class LogDB {
             }
             const db = yield this.getDB();
             if (!db) {
-                return;
+                throw new Error('[FATAL] Can not open LogDB');
             }
             /* eslint-disable @typescript-eslint/no-explicit-any */
             let i = 0;
