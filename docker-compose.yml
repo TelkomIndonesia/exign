@@ -1,7 +1,7 @@
 x-image:
   &image
   build: .
-  image: exign:0.12.4
+  image: exign:0.12.5
 
 version: "3.0"
 services:
