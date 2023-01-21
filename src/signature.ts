@@ -1,4 +1,4 @@
-import { ClientRequest, IncomingMessage } from 'node:http'
+import { ClientRequest, IncomingHttpHeaders } from 'node:http'
 import { parseKey } from 'sshpk'
 import httpSignature from 'http-signature'
 
@@ -24,9 +24,9 @@ export function publicKeyFingerprint (key: string): string {
 }
 
 interface SignOptions {
-    key: string
-    keyId?: string
-    pubkey?: string
+  key: string
+  keyId?: string
+  pubkey?: string
 }
 export function sign (req: ClientRequest, opts: SignOptions) {
   const addParam = ['(request-target)']
@@ -44,10 +44,17 @@ export function sign (req: ClientRequest, opts: SignOptions) {
   })
 }
 
-interface verifiyOptions {
+interface VerifiableMessage {
+  method?: string
+  url?: string
+  httpVersion?: string
+  headers: IncomingHttpHeaders
+}
+
+interface VerifyOptions {
   publicKeys: Map<string, string>
 }
-export function verify (msg: IncomingMessage, opts:verifiyOptions) {
+export function verify (msg: VerifiableMessage, opts: VerifyOptions) {
   try {
     const parsed = httpSignature.parseRequest(msg, { authorizationHeaderName: signatureHeader })
     const pubKey = opts.publicKeys.get(parsed.keyId)

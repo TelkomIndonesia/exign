@@ -1,8 +1,8 @@
 import express, { Application, NextFunction, Request, RequestHandler, Response } from 'express'
-import { sign } from './signature'
+import { sign, verify } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
-import { Agent as HTTPAgent } from 'http'
+import { Agent as HTTPAgent, IncomingHttpHeaders } from 'http'
 import { digest, Restreamer } from './digest'
 import { attachID, consoleLog, LogDB, messageIDHeader } from './log'
 import { Agent as HTTPSAgent } from 'https'
@@ -23,6 +23,10 @@ interface AppOptions {
     hostmap: Map<string, string>,
     secure: boolean
   }
+  verification?:{
+    keys: Map<string, string>
+    hosts: Map<string, unknown>
+  }
   logDB: LogDB
 }
 
@@ -31,6 +35,10 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
   process.on('exit', () => restreamer.close())
 
   const logDB = opts.logDB
+  const httpagent = new HTTPAgent({ keepAlive: true })
+  const httpsagent = new HTTPSAgent({ keepAlive: true })
+
+  const stop = new Map<string, string>()
 
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq, req, res) {
@@ -38,19 +46,41 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
         proxyReq.removeHeader('content-length') // some reverse proxy drop 'content-length' when it is zero
       }
 
-      res.setHeader(messageIDHeader, attachID(proxyReq))
+      const id = attachID(proxyReq)
+      res.setHeader(messageIDHeader, id)
       sign(proxyReq, opts.signature)
 
       consoleLog(proxyReq)
       logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
+
+      proxyReq.on('response', (proxyRes) => {
+        proxyRes.once('end', () => res.addTrailers(proxyRes.trailers))
+        proxyRes.once('end', () => {
+          if (!opts.verification?.hosts.get(req.headers.host || '')) {
+            return
+          }
+
+          const msg = { headers: {} as IncomingHttpHeaders }
+          for (const [k, v] of Object.entries(proxyRes.headers)) {
+            msg.headers[k] = v
+          }
+          for (const [k, v] of Object.entries(proxyRes.trailers)) {
+            msg.headers[k] = v
+          }
+          const verified = verify(msg, { publicKeys: opts.verification.keys })
+          if (!verified || !verified.verified) {
+            stop.set(req.headers.host || '', id)
+          }
+        })
+      })
     })
-    .on('proxyRes', (proxyRes, _, res) => {
-      proxyRes.on('end', () => res.addTrailers(proxyRes.trailers))
-    })
-  const httpagent = new HTTPAgent({ keepAlive: true })
-  const httpsagent = new HTTPSAgent({ keepAlive: true })
 
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
+    if (stop.get(req.hostname)) {
+      res.status(500).send(`Invalid response signature was detected from request ${stop.get(req.hostname)}. Contact the remote administrator for further action.`)
+      return
+    }
+
     const [digestValue, body] = await Promise.all([digest(req), restreamer.restream(req)])
 
     const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
