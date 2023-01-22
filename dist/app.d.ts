@@ -15,7 +15,7 @@ interface AppOptions {
         hostmap: Map<string, string>;
         secure: boolean;
     };
-    responseVerification?: {
+    verification?: {
         keys: Map<string, string>;
     };
     logDB: LogDB;

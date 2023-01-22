@@ -48,8 +48,8 @@ const config = {
     resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
     advertisedAddres: process.env.EXIGN_DNS_ADVERTISED_ADDRESS || '0.0.0.0'
   },
-  responseVerification: {
-    keys: process.env.EXIGN_RESPONSE_VERIFICATION_KEYS
+  verification: {
+    keys: process.env.EXIGN_VERIFICATION_KEYS
   }
 }
 
@@ -83,10 +83,8 @@ function file (name: string) {
 
 function publicKeys (str:string) {
   return str.split(',').reduce((m, v) => {
-    try {
-      const fp = parseKey(v).fingerprint('sha256').toString()
-      m.set(fp, v)
-    } catch {}
+    const fp = parseKey(v).fingerprint('sha256').toString()
+    m.set(fp, v)
     return m
   }, new Map<string, string>())
 }
@@ -113,8 +111,8 @@ export function newAppConfig () {
     },
     logdb: config.logdb,
     dns: config.dns,
-    responseVerification: config.responseVerification.keys
-      ? { keys: publicKeys(config.responseVerification.keys) }
+    verification: config.verification.keys
+      ? { keys: publicKeys(config.verification.keys) }
       : undefined
   }
 }

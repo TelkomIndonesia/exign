@@ -31,7 +31,7 @@ function newSignatureProxyHandler(opts) {
         proxyReq.on('response', (proxyRes) => {
             proxyRes.once('end', () => res.addTrailers(proxyRes.trailers));
             proxyRes.once('end', () => {
-                if (!opts.responseVerification) {
+                if (!opts.verification) {
                     return;
                 }
                 const msg = { headers: {} };
@@ -41,7 +41,7 @@ function newSignatureProxyHandler(opts) {
                 for (const [k, v] of Object.entries(proxyRes.trailers)) {
                     msg.headers[k] = v;
                 }
-                const verified = (0, signature_1.verify)(msg, { publicKeys: opts.responseVerification.keys });
+                const verified = (0, signature_1.verify)(msg, { publicKeys: opts.verification.keys });
                 if (!verified || !verified.verified) {
                     stop.set(req.headers.host || '', id);
                 }

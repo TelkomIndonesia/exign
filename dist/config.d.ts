@@ -24,7 +24,7 @@ export declare function newAppConfig(): {
         resolver: string;
         advertisedAddres: string;
     };
-    responseVerification: {
+    verification: {
         keys: Map<string, string>;
     } | undefined;
 };

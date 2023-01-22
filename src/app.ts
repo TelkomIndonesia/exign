@@ -23,7 +23,7 @@ interface AppOptions {
     hostmap: Map<string, string>,
     secure: boolean
   }
-  responseVerification?:{
+  verification?:{
     keys: Map<string, string>
   }
   logDB: LogDB
@@ -55,7 +55,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       proxyReq.on('response', (proxyRes) => {
         proxyRes.once('end', () => res.addTrailers(proxyRes.trailers))
         proxyRes.once('end', () => {
-          if (!opts.responseVerification) {
+          if (!opts.verification) {
             return
           }
 
@@ -66,7 +66,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
           for (const [k, v] of Object.entries(proxyRes.trailers)) {
             msg.headers[k] = v
           }
-          const verified = verify(msg, { publicKeys: opts.responseVerification.keys })
+          const verified = verify(msg, { publicKeys: opts.verification.keys })
           if (!verified || !verified.verified) {
             stop.set(req.headers.host || '', id)
           }

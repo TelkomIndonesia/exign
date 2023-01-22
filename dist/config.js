@@ -48,8 +48,8 @@ const config = {
         resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
         advertisedAddres: process.env.EXIGN_DNS_ADVERTISED_ADDRESS || '0.0.0.0'
     },
-    responseVerification: {
-        keys: process.env.EXIGN_RESPONSE_VERIFICATION_KEYS
+    verification: {
+        keys: process.env.EXIGN_VERIFICATION_KEYS
     }
 };
 function hostmap(str) {
@@ -77,11 +77,8 @@ function file(name) {
 }
 function publicKeys(str) {
     return str.split(',').reduce((m, v) => {
-        try {
-            const fp = (0, sshpk_1.parseKey)(v).fingerprint('sha256').toString();
-            m.set(fp, v);
-        }
-        catch (_a) { }
+        const fp = (0, sshpk_1.parseKey)(v).fingerprint('sha256').toString();
+        m.set(fp, v);
         return m;
     }, new Map());
 }
@@ -107,8 +104,8 @@ function newAppConfig() {
         },
         logdb: config.logdb,
         dns: config.dns,
-        responseVerification: config.responseVerification.keys
-            ? { keys: publicKeys(config.responseVerification.keys) }
+        verification: config.verification.keys
+            ? { keys: publicKeys(config.verification.keys) }
             : undefined
     };
 }
