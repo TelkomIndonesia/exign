@@ -1,4 +1,4 @@
-import { ClientRequest, IncomingHttpHeaders } from 'node:http'
+import { ClientRequest, IncomingHttpHeaders, IncomingMessage } from 'node:http'
 import { parseKey } from 'sshpk'
 import httpSignature from 'http-signature'
 
@@ -50,11 +50,10 @@ interface VerifiableMessage {
   httpVersion?: string
   headers: IncomingHttpHeaders
 }
-
 interface VerifyOptions {
   publicKeys: Map<string, string>
 }
-export function verify (msg: VerifiableMessage, opts: VerifyOptions) {
+export function verifyMessage (msg: VerifiableMessage, opts: VerifyOptions) {
   try {
     const parsed = httpSignature.parseRequest(msg, { authorizationHeaderName: signatureHeader })
     const pubKey = opts.publicKeys.get(parsed.keyId)
@@ -68,4 +67,17 @@ export function verify (msg: VerifiableMessage, opts: VerifyOptions) {
   } catch (err) {
     return { verified: false, error: err }
   }
+}
+
+export async function verify (res: IncomingMessage, opts: VerifyOptions) {
+  await new Promise((resolve, reject) => res.once('end', resolve).once('error', reject))
+
+  const msg = { headers: {} as IncomingHttpHeaders }
+  for (const [k, v] of Object.entries(res.headers)) {
+    msg.headers[k] = v
+  }
+  for (const [k, v] of Object.entries(res.trailers)) {
+    msg.headers[k] = v
+  }
+  return verifyMessage(msg, { publicKeys: opts.publicKeys })
 }

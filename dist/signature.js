@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verify = exports.sign = exports.publicKeyFingerprint = exports.noVerifyHeaders = exports.signatureHeader = void 0;
+exports.verify = exports.verifyMessage = exports.sign = exports.publicKeyFingerprint = exports.noVerifyHeaders = exports.signatureHeader = void 0;
 const tslib_1 = require("tslib");
 const sshpk_1 = require("sshpk");
 const http_signature_1 = tslib_1.__importDefault(require("http-signature"));
@@ -40,7 +40,7 @@ function sign(req, opts) {
     });
 }
 exports.sign = sign;
-function verify(msg, opts) {
+function verifyMessage(msg, opts) {
     try {
         const parsed = http_signature_1.default.parseRequest(msg, { authorizationHeaderName: exports.signatureHeader });
         const pubKey = opts.publicKeys.get(parsed.keyId);
@@ -55,6 +55,20 @@ function verify(msg, opts) {
     catch (err) {
         return { verified: false, error: err };
     }
+}
+exports.verifyMessage = verifyMessage;
+function verify(res, opts) {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield new Promise((resolve, reject) => res.once('end', resolve).once('error', reject));
+        const msg = { headers: {} };
+        for (const [k, v] of Object.entries(res.headers)) {
+            msg.headers[k] = v;
+        }
+        for (const [k, v] of Object.entries(res.trailers)) {
+            msg.headers[k] = v;
+        }
+        return verifyMessage(msg, { publicKeys: opts.publicKeys });
+    });
 }
 exports.verify = verify;
 //# sourceMappingURL=signature.js.map

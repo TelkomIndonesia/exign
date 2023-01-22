@@ -12,12 +12,12 @@ const log_1 = require("./log");
 const https_1 = require("https");
 const error_1 = require("./error");
 function newSignatureProxyHandler(opts) {
+    const stop = new Map();
     const restreamer = new digest_1.Restreamer(opts.digest);
     process.on('exit', () => restreamer.close());
     const logDB = opts.logDB;
     const httpagent = new http_1.Agent({ keepAlive: true });
     const httpsagent = new https_1.Agent({ keepAlive: true });
-    const stop = new Map();
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq, req, res) {
         if (proxyReq.getHeader('content-length') === '0') {
@@ -28,25 +28,13 @@ function newSignatureProxyHandler(opts) {
         (0, signature_1.sign)(proxyReq, opts.signature);
         (0, log_1.consoleLog)(proxyReq);
         logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
-        proxyReq.on('response', (proxyRes) => {
-            proxyRes.once('end', () => res.addTrailers(proxyRes.trailers));
-            proxyRes.once('end', () => {
-                if (!opts.verification) {
-                    return;
-                }
-                const msg = { headers: {} };
-                for (const [k, v] of Object.entries(proxyRes.headers)) {
-                    msg.headers[k] = v;
-                }
-                for (const [k, v] of Object.entries(proxyRes.trailers)) {
-                    msg.headers[k] = v;
-                }
-                const verified = (0, signature_1.verify)(msg, { publicKeys: opts.verification.keys });
-                if (!verified || !verified.verified) {
-                    stop.set(req.headers.host || '', id);
-                }
-            });
-        });
+    })
+        .on('proxyRes', function onProxyRes(proxyRes, req, res) {
+        res.addTrailers(proxyRes.trailers);
+        if (opts.verification) {
+            (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys })
+                .then(({ verified }) => { var _a; return !verified && stop.set(req.headers.host || '', ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || ''); });
+        }
     });
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {

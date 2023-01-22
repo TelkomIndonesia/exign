@@ -2,7 +2,7 @@ import express, { Application, NextFunction, Request, RequestHandler, Response }
 import { sign, verify } from './signature'
 import { mapDoubleDashHostname } from './double-dash-domain'
 import { createProxyServer } from './proxy'
-import { Agent as HTTPAgent, IncomingHttpHeaders } from 'http'
+import { Agent as HTTPAgent } from 'http'
 import { digest, Restreamer } from './digest'
 import { attachID, consoleLog, LogDB, messageIDHeader } from './log'
 import { Agent as HTTPSAgent } from 'https'
@@ -30,14 +30,12 @@ interface AppOptions {
 }
 
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
+  const stop = new Map<string, string>()
   const restreamer = new Restreamer(opts.digest)
   process.on('exit', () => restreamer.close())
-
   const logDB = opts.logDB
   const httpagent = new HTTPAgent({ keepAlive: true })
   const httpsagent = new HTTPSAgent({ keepAlive: true })
-
-  const stop = new Map<string, string>()
 
   const proxy = createProxyServer({ ws: true })
     .on('proxyReq', function onProxyReq (proxyReq, req, res) {
@@ -51,27 +49,15 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
 
       consoleLog(proxyReq)
       logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
+    })
+    .on('proxyRes', function onProxyRes (proxyRes, req, res) {
+      res.addTrailers(proxyRes.trailers)
 
-      proxyReq.on('response', (proxyRes) => {
-        proxyRes.once('end', () => res.addTrailers(proxyRes.trailers))
-        proxyRes.once('end', () => {
-          if (!opts.verification) {
-            return
-          }
-
-          const msg = { headers: {} as IncomingHttpHeaders }
-          for (const [k, v] of Object.entries(proxyRes.headers)) {
-            msg.headers[k] = v
-          }
-          for (const [k, v] of Object.entries(proxyRes.trailers)) {
-            msg.headers[k] = v
-          }
-          const verified = verify(msg, { publicKeys: opts.verification.keys })
-          if (!verified || !verified.verified) {
-            stop.set(req.headers.host || '', id)
-          }
-        })
-      })
+      if (opts.verification) {
+        verify(proxyRes, { publicKeys: opts.verification.keys })
+          .then(({ verified }) =>
+            !verified && stop.set(req.headers.host || '', res.getHeader(messageIDHeader)?.toString() || ''))
+      }
     })
 
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
@@ -81,11 +67,9 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
     }
 
     const [digestValue, body] = await Promise.all([digest(req), restreamer.restream(req)])
-
     const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
       await mapDoubleDashHostname(req.hostname, opts.upstreams.doubleDashDomains) ||
       req.hostname
-
     proxy.web(req, res,
       {
         changeOrigin: false,
