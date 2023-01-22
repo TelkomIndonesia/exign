@@ -15,23 +15,45 @@ function newSignatureProxyHandler(opts) {
     const restreamer = new digest_1.Restreamer(opts.digest);
     process.on('exit', () => restreamer.close());
     const logDB = opts.logDB;
+    const httpagent = new http_1.Agent({ keepAlive: true });
+    const httpsagent = new https_1.Agent({ keepAlive: true });
+    const stop = new Map();
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq, req, res) {
         if (proxyReq.getHeader('content-length') === '0') {
             proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
         }
-        res.setHeader(log_1.messageIDHeader, (0, log_1.attachID)(proxyReq));
+        const id = (0, log_1.attachID)(proxyReq);
+        res.setHeader(log_1.messageIDHeader, id);
         (0, signature_1.sign)(proxyReq, opts.signature);
         (0, log_1.consoleLog)(proxyReq);
         logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
-    })
-        .on('proxyRes', (proxyRes, _, res) => {
-        proxyRes.on('end', () => res.addTrailers(proxyRes.trailers));
+        proxyReq.on('response', (proxyRes) => {
+            proxyRes.once('end', () => res.addTrailers(proxyRes.trailers));
+            proxyRes.once('end', () => {
+                if (!opts.responseVerification) {
+                    return;
+                }
+                const msg = { headers: {} };
+                for (const [k, v] of Object.entries(proxyRes.headers)) {
+                    msg.headers[k] = v;
+                }
+                for (const [k, v] of Object.entries(proxyRes.trailers)) {
+                    msg.headers[k] = v;
+                }
+                const verified = (0, signature_1.verify)(msg, { publicKeys: opts.responseVerification.keys });
+                if (!verified || !verified.verified) {
+                    stop.set(req.headers.host || '', id);
+                }
+            });
+        });
     });
-    const httpagent = new http_1.Agent({ keepAlive: true });
-    const httpsagent = new https_1.Agent({ keepAlive: true });
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            if (stop.get(req.hostname)) {
+                res.status(500).send(`Invalid response signature was detected from request '${stop.get(req.hostname)}'. Contact the remote administrator for further action.`);
+                return;
+            }
             const [digestValue, body] = yield Promise.all([(0, digest_1.digest)(req), restreamer.restream(req)]);
             const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
                 (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.upstreams.doubleDashDomains)) ||

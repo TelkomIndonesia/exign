@@ -15,9 +15,11 @@ const signature_1 = require("./signature");
 const digest_1 = require("./digest");
 const stream_1 = require("stream");
 const simple_git_1 = require("simple-git");
+const sshpk_1 = require("sshpk");
 const configDir = process.env.EXIGN_CONFIG_DIRECTORY || 'config';
 const remoteConfig = {
-    url: process.env.EXIGN_REMOTE_CONFIG_URL
+    url: process.env.EXIGN_REMOTE_CONFIG_URL,
+    secure: process.env.EXIGN_REMOTE_CONFIG_SECURE || 'true'
 };
 dotenv_1.default.config({ path: (0, path_1.resolve)(configDir, '.env') });
 const config = {
@@ -45,6 +47,9 @@ const config = {
     dns: {
         resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
         advertisedAddres: process.env.EXIGN_DNS_ADVERTISED_ADDRESS || '0.0.0.0'
+    },
+    responseVerification: {
+        keys: process.env.EXIGN_RESPONSE_VERIFICATION_KEYS
     }
 };
 function hostmap(str) {
@@ -70,6 +75,16 @@ function doubleDashDomains(str) {
 function file(name) {
     return (0, fs_1.readFileSync)(name, 'utf-8');
 }
+function publicKeys(str) {
+    return str.split(',').reduce((m, v) => {
+        try {
+            const fp = (0, sshpk_1.parseKey)(v).fingerprint('sha256').toString();
+            m.set(fp, v);
+        }
+        catch (_a) { }
+        return m;
+    }, new Map());
+}
 function newAppConfig() {
     return {
         digest: {
@@ -90,10 +105,11 @@ function newAppConfig() {
             caKey: file(config.transport.caKeyfile),
             caCert: file(config.transport.caCertfile)
         },
-        logdb: {
-            directory: config.logdb.directory
-        },
-        dns: config.dns
+        logdb: config.logdb,
+        dns: config.dns,
+        responseVerification: config.responseVerification.keys
+            ? { keys: publicKeys(config.responseVerification.keys) }
+            : undefined
     };
 }
 exports.newAppConfig = newAppConfig;
@@ -136,7 +152,7 @@ function downloadIfExists(url, location, opts) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
         yield (0, promises_1.mkdir)((0, path_1.dirname)(location), { recursive: true });
         const request = url.protocol === 'http:' ? http_1.request : https_1.request;
-        const agent = url.protocol === 'https:' && config.upstreams.secure === 'false' ? new https_1.Agent({ rejectUnauthorized: false }) : undefined;
+        const agent = url.protocol === 'https:' && (opts === null || opts === void 0 ? void 0 : opts.secure) !== true ? new https_1.Agent({ rejectUnauthorized: false }) : undefined;
         const req = request(url, { agent });
         if (opts === null || opts === void 0 ? void 0 : opts.signature) {
             req.setHeader('digest', yield (0, digest_1.digest)(stream_1.Readable.from([], { objectMode: false })));
@@ -159,7 +175,7 @@ function downloadRemoteConfigs(opts) {
         if (!url) {
             return;
         }
-        const directory = (opts === null || opts === void 0 ? void 0 : opts.directory) || configDir;
+        const secure = (opts === null || opts === void 0 ? void 0 : opts.secure) || remoteConfig.secure === 'true';
         let signature = opts === null || opts === void 0 ? void 0 : opts.signature;
         if (!opts) {
             signature = {
@@ -167,11 +183,12 @@ function downloadRemoteConfigs(opts) {
                 pubkey: yield (0, promises_1.readFile)(config.signature.pubkeyfile, 'utf-8')
             };
         }
+        const directory = (opts === null || opts === void 0 ? void 0 : opts.directory) || configDir;
         const configNames = ['.env', 'hosts', 'upstream-transport/ca.crt'];
         for (const name of configNames) {
             while (true) {
                 try {
-                    const dowloaded = yield downloadIfExists(new URL(name, url), (0, path_1.resolve)(directory, name), { signature });
+                    const dowloaded = yield downloadIfExists(new URL(name, url), (0, path_1.resolve)(directory, name), { signature, secure });
                     dowloaded && console.log(`[INFO] Remote configs '${name}' downloaded`);
                     break;
                 }

@@ -28,7 +28,7 @@ async function startServers () {
       ca: pki.certificateToPem(caCert)
     }).context)
   }
-  const httpsServerOptions : ServerOptions = {
+  const httpsServerOptions: ServerOptions = {
     SNICallback: sniCallback,
     key: pki.privateKeyToPem(localhostKey),
     cert: pki.certificateToPem(localhostCert),

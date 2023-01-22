@@ -23,9 +23,8 @@ interface AppOptions {
     hostmap: Map<string, string>,
     secure: boolean
   }
-  verification?:{
+  responseVerification?:{
     keys: Map<string, string>
-    hosts: Map<string, unknown>
   }
   logDB: LogDB
 }
@@ -56,7 +55,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       proxyReq.on('response', (proxyRes) => {
         proxyRes.once('end', () => res.addTrailers(proxyRes.trailers))
         proxyRes.once('end', () => {
-          if (!opts.verification?.hosts.get(req.headers.host || '')) {
+          if (!opts.responseVerification) {
             return
           }
 
@@ -67,7 +66,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
           for (const [k, v] of Object.entries(proxyRes.trailers)) {
             msg.headers[k] = v
           }
-          const verified = verify(msg, { publicKeys: opts.verification.keys })
+          const verified = verify(msg, { publicKeys: opts.responseVerification.keys })
           if (!verified || !verified.verified) {
             stop.set(req.headers.host || '', id)
           }
@@ -77,7 +76,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
 
   return async function signatureProxyHandler (req: Request, res: Response, next: NextFunction) {
     if (stop.get(req.hostname)) {
-      res.status(500).send(`Invalid response signature was detected from request ${stop.get(req.hostname)}. Contact the remote administrator for further action.`)
+      res.status(500).send(`Invalid response signature was detected from request '${stop.get(req.hostname)}'. Contact the remote administrator for further action.`)
       return
     }
 
