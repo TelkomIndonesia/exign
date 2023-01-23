@@ -1,6 +1,0 @@
-services:
-  exign:
-    volumes:
-      # Use existing trusted CA
-      - $HOME/Library/Application Support/mkcert/rootCA.pem:/src/config/transport/ca.crt
-      - $HOME/Library/Application Support/mkcert/rootCA-key.pem:/src/config/transport/ca-key.pem

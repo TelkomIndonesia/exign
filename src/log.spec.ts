@@ -16,7 +16,7 @@ test('find message', async function () {
       'accept-encoding': 'gzip'
     }
   })
-  attachID(req)
+  attachID(req, Date.now().toString())
 
   const logDB = new LogDB(opts)
   logDB.log(req, { url: '/requests', httpVersion: '1.1' })

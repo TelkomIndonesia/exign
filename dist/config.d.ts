@@ -24,6 +24,9 @@ export declare function newAppConfig(): {
         resolver: string;
         advertisedAddres: string;
     };
+    verification: {
+        keys: Map<string, string>;
+    } | undefined;
 };
 interface generatePKIsOptions {
     signature: {
@@ -39,6 +42,7 @@ export declare function generatePKIs(opts?: generatePKIsOptions): Promise<void>;
 interface downloadRemoteConfigsOptions {
     url: string;
     directory: string;
+    secure?: boolean;
     signature?: {
         key: string;
         pubkey: string;
