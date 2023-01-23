@@ -9,13 +9,11 @@ import { PassThrough, Writable } from 'stream'
 import { createBrotliDecompress, createGunzip, createInflate } from 'zlib'
 
 export const messageIDHeader = 'x-exign-id'
-const startTimeHeader = 'x-exign-start'
-const start = new Date()
+const idSeparator = '-'
 
-export function attachID (req: ClientRequest) {
-  const id = ulid()
+export function attachID (req: ClientRequest, postfix?: string) {
+  const id = ulid() + (postfix ? idSeparator + postfix : '')
   req.setHeader(messageIDHeader, id)
-  req.setHeader(startTimeHeader, start.getTime())
   return id
 }
 
@@ -145,7 +143,7 @@ export class LogDB {
   }
 
   async find (query: LogDBFindQuery, fopts?: LogDBFindOptions) {
-    const date = new Date(decodeTime(query.id))
+    const date = new Date(decodeTime(query.id.substring(0, query.id.indexOf(idSeparator))))
     const db = await this.getDB(date, { createIfMissing: false })
     if (!db) {
       return

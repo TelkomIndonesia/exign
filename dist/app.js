@@ -11,20 +11,26 @@ const digest_1 = require("./digest");
 const log_1 = require("./log");
 const https_1 = require("https");
 const error_1 = require("./error");
+const stopPeriodMilis = 10 * 1000;
+function formatStopMessage(messageID) {
+    return `Invalid response signature was detected from request '${messageID}'. ` +
+        `The proxy will stop receiving request for ${stopPeriodMilis.toLocaleString()} milisecond. ` +
+        'Contact the remote administrator for confirmation.';
+}
 function newSignatureProxyHandler(opts) {
-    const stop = new Map();
+    const httpagent = new http_1.Agent({ keepAlive: true });
+    const httpsagent = new https_1.Agent({ keepAlive: true });
     const restreamer = new digest_1.Restreamer(opts.digest);
     process.on('exit', () => restreamer.close());
     const logDB = opts.logDB;
-    const httpagent = new http_1.Agent({ keepAlive: true });
-    const httpsagent = new https_1.Agent({ keepAlive: true });
+    const stop = new Map();
+    let msgIDPostfix = Date.now().toString();
     const proxy = (0, proxy_1.createProxyServer)({ ws: true })
         .on('proxyReq', function onProxyReq(proxyReq, req, res) {
         if (proxyReq.getHeader('content-length') === '0') {
             proxyReq.removeHeader('content-length'); // some reverse proxy drop 'content-length' when it is zero
         }
-        const id = (0, log_1.attachID)(proxyReq);
-        res.setHeader(log_1.messageIDHeader, id);
+        res.setHeader(log_1.messageIDHeader, (0, log_1.attachID)(proxyReq, msgIDPostfix));
         (0, signature_1.sign)(proxyReq, opts.signature);
         (0, log_1.consoleLog)(proxyReq);
         logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
@@ -33,16 +39,27 @@ function newSignatureProxyHandler(opts) {
         var _a;
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             res.addTrailers(proxyRes.trailers);
-            if (opts.verification) {
-                const { verified } = yield (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
-                verified || stop.set(req.headers.host || '', ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || '');
+            if (!opts.verification) {
+                return;
+            }
+            const { verified } = yield (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
+            const host = req.headers.host || '';
+            if (!verified && !stop.get(host)) {
+                const id = ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || '';
+                stop.set(host, id);
+                console.log('[ERROR] ', formatStopMessage(id));
+                setTimeout(() => {
+                    stop.delete(host);
+                    msgIDPostfix = Date.now().toString();
+                }, stopPeriodMilis);
             }
         });
     });
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            if (stop.get(req.hostname)) {
-                res.status(500).send(`Invalid response signature was detected from request '${stop.get(req.hostname)}'. Contact the remote administrator for further action.`);
+            const stopID = stop.get(req.hostname);
+            if (stopID) {
+                res.status(503).send(formatStopMessage(stopID));
                 return;
             }
             const [digestValue, body] = yield Promise.all([(0, digest_1.digest)(req), restreamer.restream(req)]);
