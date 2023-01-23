@@ -9,10 +9,13 @@ import { PassThrough, Writable } from 'stream'
 import { createBrotliDecompress, createGunzip, createInflate } from 'zlib'
 
 export const messageIDHeader = 'x-exign-id'
+const startTimeHeader = 'x-exign-start'
+const start = new Date()
 
 export function attachID (req: ClientRequest) {
   const id = ulid()
   req.setHeader(messageIDHeader, id)
+  req.setHeader(startTimeHeader, start.getTime())
   return id
 }
 

@@ -11,9 +11,12 @@ const ulid_1 = require("ulid");
 const stream_1 = require("stream");
 const zlib_1 = require("zlib");
 exports.messageIDHeader = 'x-exign-id';
+const startTimeHeader = 'x-exign-start';
+const start = new Date();
 function attachID(req) {
     const id = (0, ulid_1.ulid)();
     req.setHeader(exports.messageIDHeader, id);
+    req.setHeader(startTimeHeader, start.getTime());
     return id;
 }
 exports.attachID = attachID;
