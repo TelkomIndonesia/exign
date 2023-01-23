@@ -11,8 +11,9 @@ const ulid_1 = require("ulid");
 const stream_1 = require("stream");
 const zlib_1 = require("zlib");
 exports.messageIDHeader = 'x-exign-id';
-function attachID(req) {
-    const id = (0, ulid_1.ulid)();
+const idSeparator = '-';
+function attachID(req, postfix) {
+    const id = (0, ulid_1.ulid)() + (postfix ? idSeparator + postfix : '');
     req.setHeader(exports.messageIDHeader, id);
     return id;
 }
@@ -118,7 +119,7 @@ class LogDB {
     }
     find(query, fopts) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const date = new Date((0, ulid_1.decodeTime)(query.id));
+            const date = new Date((0, ulid_1.decodeTime)(query.id.substring(0, query.id.indexOf(idSeparator))));
             const db = yield this.getDB(date, { createIfMissing: false });
             if (!db) {
                 return;

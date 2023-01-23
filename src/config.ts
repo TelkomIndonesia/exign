@@ -11,11 +11,13 @@ import { sign } from './signature'
 import { digest } from './digest'
 import { Readable } from 'stream'
 import { simpleGit } from 'simple-git'
+import { parseKey } from 'sshpk'
 
 const configDir = process.env.EXIGN_CONFIG_DIRECTORY || 'config'
 
 const remoteConfig = {
-  url: process.env.EXIGN_REMOTE_CONFIG_URL
+  url: process.env.EXIGN_REMOTE_CONFIG_URL,
+  secure: process.env.EXIGN_REMOTE_CONFIG_SECURE || 'true'
 }
 
 dotenv.config({ path: resolve(configDir, '.env') })
@@ -45,6 +47,9 @@ const config = {
   dns: {
     resolver: process.env.EXIGN_DNS_RESOLVER || '1.1.1.1',
     advertisedAddres: process.env.EXIGN_DNS_ADVERTISED_ADDRESS || '0.0.0.0'
+  },
+  verification: {
+    keys: process.env.EXIGN_VERIFICATION_KEYS
   }
 }
 
@@ -76,6 +81,14 @@ function file (name: string) {
   return readFileSync(name, 'utf-8')
 }
 
+function publicKeys (str:string) {
+  return str.split(',').reduce((m, v) => {
+    const fp = parseKey(v).fingerprint('sha256').toString()
+    m.set(fp, v)
+    return m
+  }, new Map<string, string>())
+}
+
 export function newAppConfig () {
   return {
     digest: {
@@ -96,10 +109,11 @@ export function newAppConfig () {
       caKey: file(config.transport.caKeyfile),
       caCert: file(config.transport.caCertfile)
     },
-    logdb: {
-      directory: config.logdb.directory
-    },
-    dns: config.dns
+    logdb: config.logdb,
+    dns: config.dns,
+    verification: config.verification.keys
+      ? { keys: publicKeys(config.verification.keys) }
+      : undefined
   }
 }
 
@@ -156,11 +170,12 @@ interface downloadOptions {
     key: string
     pubkey: string
   }
+  secure?: boolean
 }
 async function downloadIfExists (url: URL, location: string, opts?: downloadOptions) {
   await mkdir(dirname(location), { recursive: true })
   const request = url.protocol === 'http:' ? requestHTTP : requestHTTPS
-  const agent = url.protocol === 'https:' && config.upstreams.secure === 'false' ? new AgentHTTPS({ rejectUnauthorized: false }) : undefined
+  const agent = url.protocol === 'https:' && opts?.secure !== true ? new AgentHTTPS({ rejectUnauthorized: false }) : undefined
   const req = request(url, { agent })
   if (opts?.signature) {
     req.setHeader('digest', await digest(Readable.from([], { objectMode: false })))
@@ -184,6 +199,7 @@ async function downloadIfExists (url: URL, location: string, opts?: downloadOpti
 interface downloadRemoteConfigsOptions {
   url: string,
   directory: string,
+  secure?: boolean,
   signature?: {
     key: string
     pubkey: string
@@ -195,7 +211,7 @@ export async function downloadRemoteConfigs (opts?: downloadRemoteConfigsOptions
     return
   }
 
-  const directory = opts?.directory || configDir
+  const secure = opts?.secure || remoteConfig.secure === 'true'
   let signature = opts?.signature
   if (!opts) {
     signature = {
@@ -203,11 +219,12 @@ export async function downloadRemoteConfigs (opts?: downloadRemoteConfigsOptions
       pubkey: await readFile(config.signature.pubkeyfile, 'utf-8')
     }
   }
+  const directory = opts?.directory || configDir
   const configNames = ['.env', 'hosts', 'upstream-transport/ca.crt']
   for (const name of configNames) {
     while (true) {
       try {
-        const dowloaded = await downloadIfExists(new URL(name, url), resolve(directory, name), { signature })
+        const dowloaded = await downloadIfExists(new URL(name, url), resolve(directory, name), { signature, secure })
         dowloaded && console.log(`[INFO] Remote configs '${name}' downloaded`)
         break
       } catch (err) {

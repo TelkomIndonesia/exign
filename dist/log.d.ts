@@ -3,7 +3,7 @@
 import { ClientRequest } from 'http';
 import { PassThrough } from 'stream';
 export declare const messageIDHeader = "x-exign-id";
-export declare function attachID(req: ClientRequest): string;
+export declare function attachID(req: ClientRequest, postfix?: string): string;
 export declare function consoleLog(req: ClientRequest): void;
 interface LogDBOptions {
     directory: string;

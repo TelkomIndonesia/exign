@@ -1,4 +1,4 @@
-import { ClientRequest, IncomingMessage } from 'node:http'
+import { ClientRequest, IncomingHttpHeaders, IncomingMessage } from 'node:http'
 import { parseKey } from 'sshpk'
 import httpSignature from 'http-signature'
 
@@ -24,9 +24,9 @@ export function publicKeyFingerprint (key: string): string {
 }
 
 interface SignOptions {
-    key: string
-    keyId?: string
-    pubkey?: string
+  key: string
+  keyId?: string
+  pubkey?: string
 }
 export function sign (req: ClientRequest, opts: SignOptions) {
   const addParam = ['(request-target)']
@@ -44,10 +44,16 @@ export function sign (req: ClientRequest, opts: SignOptions) {
   })
 }
 
-interface verifiyOptions {
+interface VerifiableMessage {
+  method?: string
+  url?: string
+  httpVersion?: string
+  headers: IncomingHttpHeaders
+}
+interface VerifyOptions {
   publicKeys: Map<string, string>
 }
-export function verify (msg: IncomingMessage, opts:verifiyOptions) {
+export function verifyMessage (msg: VerifiableMessage, opts: VerifyOptions) {
   try {
     const parsed = httpSignature.parseRequest(msg, { authorizationHeaderName: signatureHeader })
     const pubKey = opts.publicKeys.get(parsed.keyId)
@@ -58,6 +64,22 @@ export function verify (msg: IncomingMessage, opts:verifiyOptions) {
       return { verified: false, error: 'invalid signature' }
     }
     return { verified: true }
+  } catch (err) {
+    return { verified: false, error: err }
+  }
+}
+
+export async function verify (res: IncomingMessage, opts: VerifyOptions) {
+  try {
+    await new Promise((resolve, reject) => res.once('end', resolve).once('error', reject))
+    const msg = { headers: {} as IncomingHttpHeaders }
+    for (const [k, v] of Object.entries(res.headers)) {
+      msg.headers[k] = v
+    }
+    for (const [k, v] of Object.entries(res.trailers)) {
+      msg.headers[k] = v
+    }
+    return verifyMessage(msg, { publicKeys: opts.publicKeys })
   } catch (err) {
     return { verified: false, error: err }
   }

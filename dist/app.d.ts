@@ -15,6 +15,9 @@ interface AppOptions {
         hostmap: Map<string, string>;
         secure: boolean;
     };
+    verification?: {
+        keys: Map<string, string>;
+    };
     logDB: LogDB;
 }
 export declare function newApp(opts: AppOptions): Application;
