@@ -70,14 +70,17 @@ export function verifyMessage (msg: VerifiableMessage, opts: VerifyOptions) {
 }
 
 export async function verify (res: IncomingMessage, opts: VerifyOptions) {
-  await new Promise((resolve, reject) => res.once('end', resolve).once('error', reject))
-
-  const msg = { headers: {} as IncomingHttpHeaders }
-  for (const [k, v] of Object.entries(res.headers)) {
-    msg.headers[k] = v
+  try {
+    await new Promise((resolve, reject) => res.once('end', resolve).once('error', reject))
+    const msg = { headers: {} as IncomingHttpHeaders }
+    for (const [k, v] of Object.entries(res.headers)) {
+      msg.headers[k] = v
+    }
+    for (const [k, v] of Object.entries(res.trailers)) {
+      msg.headers[k] = v
+    }
+    return verifyMessage(msg, { publicKeys: opts.publicKeys })
+  } catch (err) {
+    return { verified: false, error: err }
   }
-  for (const [k, v] of Object.entries(res.trailers)) {
-    msg.headers[k] = v
-  }
-  return verifyMessage(msg, { publicKeys: opts.publicKeys })
 }

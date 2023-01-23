@@ -59,15 +59,20 @@ function verifyMessage(msg, opts) {
 exports.verifyMessage = verifyMessage;
 function verify(res, opts) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        yield new Promise((resolve, reject) => res.once('end', resolve).once('error', reject));
-        const msg = { headers: {} };
-        for (const [k, v] of Object.entries(res.headers)) {
-            msg.headers[k] = v;
+        try {
+            yield new Promise((resolve, reject) => res.once('end', resolve).once('error', reject));
+            const msg = { headers: {} };
+            for (const [k, v] of Object.entries(res.headers)) {
+                msg.headers[k] = v;
+            }
+            for (const [k, v] of Object.entries(res.trailers)) {
+                msg.headers[k] = v;
+            }
+            return verifyMessage(msg, { publicKeys: opts.publicKeys });
         }
-        for (const [k, v] of Object.entries(res.trailers)) {
-            msg.headers[k] = v;
+        catch (err) {
+            return { verified: false, error: err };
         }
-        return verifyMessage(msg, { publicKeys: opts.publicKeys });
     });
 }
 exports.verify = verify;

@@ -50,13 +50,12 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       consoleLog(proxyReq)
       logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion })
     })
-    .on('proxyRes', function onProxyRes (proxyRes, req, res) {
+    .on('proxyRes', async function onProxyRes (proxyRes, req, res) {
       res.addTrailers(proxyRes.trailers)
 
       if (opts.verification) {
-        verify(proxyRes, { publicKeys: opts.verification.keys })
-          .then(({ verified }) =>
-            !verified && stop.set(req.headers.host || '', res.getHeader(messageIDHeader)?.toString() || ''))
+        const { verified } = await verify(proxyRes, { publicKeys: opts.verification.keys })
+        verified || stop.set(req.headers.host || '', res.getHeader(messageIDHeader)?.toString() || '')
       }
     })
 

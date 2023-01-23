@@ -30,11 +30,14 @@ function newSignatureProxyHandler(opts) {
         logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
     })
         .on('proxyRes', function onProxyRes(proxyRes, req, res) {
-        res.addTrailers(proxyRes.trailers);
-        if (opts.verification) {
-            (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys })
-                .then(({ verified }) => { var _a; return !verified && stop.set(req.headers.host || '', ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || ''); });
-        }
+        var _a;
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            res.addTrailers(proxyRes.trailers);
+            if (opts.verification) {
+                const { verified } = yield (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
+                verified || stop.set(req.headers.host || '', ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || '');
+            }
+        });
     });
     return function signatureProxyHandler(req, res, next) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
