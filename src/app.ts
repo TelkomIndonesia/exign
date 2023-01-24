@@ -71,10 +71,9 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
         const id = res.getHeader(messageIDHeader)?.toString() || ''
         stop.set(host, id)
         console.log('[ERROR] ', formatStopMessage(id))
-        setTimeout(() => {
-          stop.delete(host)
-          msgIDPostfix = Date.now().toString()
-        }, stopPeriodMilis)
+
+        msgIDPostfix = Date.now().toString()
+        setTimeout(() => stop.delete(host), stopPeriodMilis)
       }
     })
 
