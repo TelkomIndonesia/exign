@@ -47,9 +47,9 @@ function newSignatureProxyHandler(opts) {
             if (!verified && !stop.get(host)) {
                 const id = ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || '';
                 stop.set(host, id);
-                console.log('[ERROR] ', formatStopMessage(id));
                 msgIDPostfix = Date.now().toString();
                 setTimeout(() => stop.delete(host), stopPeriodMilis);
+                console.log('[ERROR] ', formatStopMessage(id));
             }
         });
     });
