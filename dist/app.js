@@ -13,7 +13,7 @@ const https_1 = require("https");
 const error_1 = require("./error");
 const stopPeriodMilis = 10 * 1000;
 function formatStopMessage(messageID) {
-    return `Invalid response signature was detected from request '${messageID}'. ` +
+    return `Invalid response signature was detected from request(s): '${Array.isArray(messageID) ? messageID.join("', '") : messageID}'. ` +
         `The proxy will stop receiving request for ${stopPeriodMilis.toLocaleString()} milisecond. ` +
         'Contact the remote administrator for confirmation.';
 }
@@ -43,13 +43,19 @@ function newSignatureProxyHandler(opts) {
                 return;
             }
             const { verified } = yield (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
-            const host = req.headers.host || '';
-            if (!verified && !stop.get(host)) {
+            if (!verified) {
+                const host = req.headers.host || '';
                 const id = ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || '';
-                stop.set(host, id);
-                msgIDPostfix = Date.now().toString();
-                setTimeout(() => stop.delete(host), stopPeriodMilis);
                 console.log('[ERROR] ', formatStopMessage(id));
+                const stoppers = stop.get(host);
+                if (!stoppers) {
+                    stop.set(host, [id]);
+                    msgIDPostfix = Date.now().toString();
+                    setTimeout(() => stop.delete(host), stopPeriodMilis);
+                }
+                else {
+                    stoppers.push(id);
+                }
             }
         });
     });
