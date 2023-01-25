@@ -23,27 +23,28 @@ interface AppOptions {
     hostmap: Map<string, string>,
     secure: boolean
   }
-  verification?:{
+  verification?: {
     keys: Map<string, string>
   }
   logDB: LogDB
 }
 
 const stopPeriodMilis = 10 * 1000
-function formatStopMessage (messageID: string) {
-  return `Invalid response signature was detected from request '${messageID}'. ` +
-      `The proxy will stop receiving request for ${stopPeriodMilis.toLocaleString()} milisecond. ` +
-      'Contact the remote administrator for confirmation.'
+function formatStopMessage (messageID: string | string[] | number) {
+  return `Invalid response signature was detected from request(s): '${Array.isArray(messageID) ? messageID.join("', '") : messageID}'. ` +
+    `The proxy will stop receiving request for ${stopPeriodMilis.toLocaleString()} milisecond. ` +
+    'Contact the remote administrator for confirmation.'
 }
 
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
-  const httpagent = new HTTPAgent({ keepAlive: true })
-  const httpsagent = new HTTPSAgent({ keepAlive: true })
   const restreamer = new Restreamer(opts.digest)
   process.on('exit', () => restreamer.close())
+  const httpagent = new HTTPAgent({ keepAlive: true })
+  const httpsagent = new HTTPSAgent({ keepAlive: true })
+
   const logDB = opts.logDB
 
-  const stop = new Map<string, string>()
+  const stop = new Map<string, string[]>()
   let msgIDPostfix = Date.now().toString()
 
   const proxy = createProxyServer({ ws: true })
@@ -64,17 +65,20 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
       if (!opts.verification) {
         return
       }
-
       const { verified } = await verify(proxyRes, { publicKeys: opts.verification.keys })
-      const host = req.headers.host || ''
-      if (!verified && !stop.get(host)) {
+      if (!verified) {
+        const host = req.headers.host || ''
         const id = res.getHeader(messageIDHeader)?.toString() || ''
-        stop.set(host, id)
         console.log('[ERROR] ', formatStopMessage(id))
-        setTimeout(() => {
-          stop.delete(host)
+
+        const stoppers = stop.get(host)
+        if (!stoppers) {
+          stop.set(host, [id])
           msgIDPostfix = Date.now().toString()
-        }, stopPeriodMilis)
+          setTimeout(() => stop.delete(host), stopPeriodMilis)
+        } else {
+          stoppers.push(id)
+        }
       }
     })
 
