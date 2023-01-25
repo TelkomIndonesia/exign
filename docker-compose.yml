@@ -1,12 +1,8 @@
-x-image:
-  &image
-  build: .
-  image: exign:0.13.0
-
 version: "3.0"
 services:
   exign:
-    <<: *image
+    build: .
+    image: exign:0.13.1-dev
     restart: unless-stopped
     environment:
       EXIGN_CONFIG_DIRECTORY:
