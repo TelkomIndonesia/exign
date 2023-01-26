@@ -13,10 +13,8 @@ Steps:
       --rm \
       --name exign \
       --pull 'always' \
-      --env 'NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt' \
-      --env 'EXIGN_DNS_RESOLVER=8.8.8.8' \
-      --env 'EXIGN_DNS_ADVERTISED_ADDRESS=0.0.0.0' \
       --dns '8.8.8.8' \
+      --dns '8.8.1.1' \
       --publish '53:53/udp' \
       --publish '80:80' \
       --publish '443:443' \
@@ -34,8 +32,6 @@ Steps:
         --rm \
         --name exign \
         --pull 'always' \
-        --env 'NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt' \
-        --env 'EXIGN_REMOTE_CONFIG_URL=https://gw.etchpass.dev' \
         --publish '1080:1080' \
         --publish '127.0.0.1:3000:3000' \
         --volume "$(pwd)/config:/src/config" \
