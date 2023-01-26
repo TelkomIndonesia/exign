@@ -17,8 +17,6 @@ services:
       EXIGN_DNS_RESOLVER: ${EXIGN_DNS_RESOLVER:-127.0.0.11} # default use docker compose dns server
       EXIGN_DNS_ADVERTISED_ADDRESS:
       EXIGN_VERIFICATION_KEYS: 
-
-      NODE_EXTRA_CA_CERTS: /src/config/upstream-transport/ca.crt
     dns:
       - 8.8.8.8
       - 8.8.4.4
