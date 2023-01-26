@@ -1,11 +1,14 @@
 # syntax = docker/dockerfile:1.2
 
-FROM node:18-alpine AS base
-RUN apk add --no-cache bash curl ca-certificates git
+FROM node:18.13.0-slim AS base
+RUN apt-get update && apt-get install -y \
+  ca-certificates \
+  git \
+  && rm -rf /var/lib/apt/lists/*
 
 
 
-FROM base AS resolver
+FROM base AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/src/node_modules \
@@ -13,22 +16,21 @@ RUN --mount=type=cache,target=/src/node_modules \
     && cp -r node_modules node_modules.bak
 RUN rm -rf node_modules && mv node_modules.bak node_modules
 COPY . .
+RUN npm run build 
 ENV NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt
 ENTRYPOINT [ "./docker-entrypoint.sh" ]
 CMD [ "npm", "run", "server-dev" ]
 
 
 
-FROM resolver AS builder
-RUN npm run build 
+FROM build AS pruned
 RUN npm prune --production
-CMD [ "npm", "run", "server" ]
 
 
 
 FROM base AS final
 WORKDIR /src
-COPY --from=builder /src .
-ENV NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt
+COPY --from=pruned /src .
+ENV NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt \
+    NODE_ENV=production
 ENTRYPOINT [ "./docker-entrypoint.sh" ]
-CMD [ "npm", "run", "server" ]
