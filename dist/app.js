@@ -18,10 +18,10 @@ function formatStopMessage(messageID) {
         'Contact the remote administrator for confirmation.';
 }
 function newSignatureProxyHandler(opts) {
-    const httpagent = new http_1.Agent({ keepAlive: true });
-    const httpsagent = new https_1.Agent({ keepAlive: true });
     const restreamer = new digest_1.Restreamer(opts.digest);
     process.on('exit', () => restreamer.close());
+    const httpagent = new http_1.Agent({ keepAlive: true });
+    const httpsagent = new https_1.Agent({ keepAlive: true });
     const logDB = opts.logDB;
     const stop = new Map();
     let msgIDPostfix = Date.now().toString();

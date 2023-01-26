@@ -15,6 +15,7 @@ export function newDNSOverrideServer (opts: options) {
     listen: (port: number, cb?: () => void) => {
       server.listen(port)
       cb && setImmediate(cb)
+      return server
     },
     close: (cb: (...args: unknown[]) => void) => server.close(cb)
   }

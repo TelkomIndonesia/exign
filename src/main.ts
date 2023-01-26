@@ -10,12 +10,10 @@ import { newSocks5Server } from './socks5'
 import { newDNSOverrideServer } from './dns'
 import { LogDB } from './log'
 
-async function startServers () {
-  const cfg = newAppConfig()
-  const logDB = new LogDB(cfg.logdb)
-
-  const { key: caKey, cert: caCert } = loadX509Pair(cfg.transport.caKey, cfg.transport.caCert)
+function newHTTPSServerOptions (caKeyStr: string, caCertStr: string): ServerOptions {
+  const { key: caKey, cert: caCert } = loadX509Pair(caKeyStr, caCertStr)
   const { key: localhostKey, cert: localhostCert } = newX509Pair('localhost', { caKey, caCert })
+
   function sniCallback (domain: string, cb: (err: Error | null, ctx?: tls.SecureContext) => void) {
     if (process.env.NODE_ENV === 'debug') {
       console.log(`received SNI request for: ${domain} domain`)
@@ -28,33 +26,47 @@ async function startServers () {
       ca: pki.certificateToPem(caCert)
     }).context)
   }
-  const httpsServerOptions: ServerOptions = {
+
+  return {
     SNICallback: sniCallback,
     key: pki.privateKeyToPem(localhostKey),
     cert: pki.certificateToPem(localhostCert),
     ca: pki.certificateToPem(caCert)
   }
+}
+
+async function startServers () {
+  const cfg = newAppConfig()
+  const logDB = new LogDB(cfg.logdb)
 
   const app = newApp({ ...cfg, logDB })
-  http.createServer(app)
+  const srv1 = http.createServer(app)
     .listen(80, () => console.log('[INFO] HTTP Server running on port 80'))
-  https.createServer(httpsServerOptions, app)
+  const srv2 = https.createServer(newHTTPSServerOptions(cfg.transport.caKey, cfg.transport.caCert), app)
     .listen(443, () => console.log('[INFO] HTTPS Server running on port 443'))
 
-  newSocks5Server({
+  const srv3 = newSocks5Server({
     target: '0.0.0.0',
     hosts: cfg.upstreams.hostmap,
     ports: new Map([[80, true], [443, true]])
   }).listen(1080, '0.0.0.0', () => console.log('[INFO] SOCKS5 Server listening on port 1080'))
 
-  newDNSOverrideServer({
+  const srv4 = newDNSOverrideServer({
     hosts: Array.from(cfg.upstreams.hostmap.keys()),
     address: cfg.dns.advertisedAddres,
     resolver: cfg.dns.resolver
   }).listen(53, () => console.log('[INFO] DNS Server listening on port 53'))
 
-  http.createServer(newMgmtApp({ ...cfg, logDB }))
+  const srv5 = http.createServer(newMgmtApp({ ...cfg, logDB }))
     .listen(3000, () => console.log('[INFO] HTTP Management Server running on port 3000'))
+
+  const shutdown = function close () {
+    console.log('[WARN] Closing...');
+    [logDB, srv1, srv2, srv3, srv4, srv5]
+      .map((v: {close: () => void}) => v.close())
+  }
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 }
 
 async function init () {
