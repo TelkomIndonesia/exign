@@ -14,14 +14,15 @@ RUN --mount=type=cache,target=/src/node_modules \
 RUN rm -rf node_modules && mv node_modules.bak node_modules
 COPY . .
 ENV NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt
-ENTRYPOINT [ "npm", "run", "server-dev" ]
+ENTRYPOINT [ "./docker-entrypoint.sh" ]
+CMD [ "npm", "run", "server-dev" ]
 
 
 
 FROM resolver AS builder
 RUN npm run build 
 RUN npm prune --production
-ENTRYPOINT [ "npm", "run", "server" ]
+CMD [ "npm", "run", "server" ]
 
 
 
@@ -29,4 +30,5 @@ FROM base AS final
 WORKDIR /src
 COPY --from=builder /src .
 ENV NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt
-ENTRYPOINT [ "npm", "run", "server" ]
+ENTRYPOINT [ "./docker-entrypoint.sh" ]
+CMD [ "npm", "run", "server" ]
