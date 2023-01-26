@@ -6,7 +6,6 @@ RUN apk add --no-cache bash curl ca-certificates git
 
 
 FROM base AS resolver
-
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/src/node_modules \
@@ -14,6 +13,7 @@ RUN --mount=type=cache,target=/src/node_modules \
     && cp -r node_modules node_modules.bak
 RUN rm -rf node_modules && mv node_modules.bak node_modules
 COPY . .
+ENV NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt
 ENTRYPOINT [ "npm", "run", "server-dev" ]
 
 
@@ -24,7 +24,9 @@ RUN npm prune --production
 ENTRYPOINT [ "npm", "run", "server" ]
 
 
+
 FROM base AS final
 WORKDIR /src
 COPY --from=builder /src .
+ENV NODE_EXTRA_CA_CERTS=/src/config/upstream-transport/ca.crt
 ENTRYPOINT [ "npm", "run", "server" ]
