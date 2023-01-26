@@ -2,7 +2,7 @@ version: "3.0"
 services:
   exign:
     build: .
-    image: exign:0.14.0-dev
+    image: exign:0.15.0-dev
     restart: unless-stopped
     environment:
       EXIGN_CONFIG_DIRECTORY:
