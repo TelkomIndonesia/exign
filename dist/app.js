@@ -11,6 +11,11 @@ const digest_1 = require("./digest");
 const log_1 = require("./log");
 const https_1 = require("https");
 const error_1 = require("./error");
+const cacheable = import('cacheable-lookup').then(pkg => pkg.default).then(CacheableLookup => new CacheableLookup());
+function withCacheableLookup(agent) {
+    cacheable.then(cacheable => cacheable.install(agent));
+    return agent;
+}
 const stopPeriodMilis = 10 * 1000;
 function formatStopMessage(messageID) {
     return `Invalid response signature was detected from request(s): '${Array.isArray(messageID) ? messageID.join("', '") : messageID}'. ` +
@@ -20,8 +25,8 @@ function formatStopMessage(messageID) {
 function newSignatureProxyHandler(opts) {
     const restreamer = new digest_1.Restreamer(opts.digest);
     process.on('exit', () => restreamer.close());
-    const httpagent = new http_1.Agent({ keepAlive: true });
-    const httpsagent = new https_1.Agent({ keepAlive: true });
+    const httpagent = withCacheableLookup(new http_1.Agent({ keepAlive: true }));
+    const httpsagent = withCacheableLookup(new https_1.Agent({ keepAlive: true }));
     const logDB = opts.logDB;
     const stop = new Map();
     let msgIDPostfix = Date.now().toString();
@@ -35,50 +40,45 @@ function newSignatureProxyHandler(opts) {
         (0, log_1.consoleLog)(proxyReq);
         logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
     })
-        .on('proxyRes', function onProxyRes(proxyRes, req, res) {
-        var _a;
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            res.addTrailers(proxyRes.trailers);
-            if (!opts.verification) {
-                return;
+        .on('proxyRes', async function onProxyRes(proxyRes, req, res) {
+        res.addTrailers(proxyRes.trailers);
+        if (!opts.verification) {
+            return;
+        }
+        const { verified } = await (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
+        if (!verified) {
+            const host = req.headers.host || '';
+            const id = res.getHeader(log_1.messageIDHeader)?.toString() || '';
+            console.log('[ERROR] ', formatStopMessage(id));
+            const stoppers = stop.get(host);
+            if (!stoppers) {
+                stop.set(host, [id]);
+                msgIDPostfix = Date.now().toString();
+                setTimeout(() => stop.delete(host), stopPeriodMilis);
             }
-            const { verified } = yield (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
-            if (!verified) {
-                const host = req.headers.host || '';
-                const id = ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || '';
-                console.log('[ERROR] ', formatStopMessage(id));
-                const stoppers = stop.get(host);
-                if (!stoppers) {
-                    stop.set(host, [id]);
-                    msgIDPostfix = Date.now().toString();
-                    setTimeout(() => stop.delete(host), stopPeriodMilis);
-                }
-                else {
-                    stoppers.push(id);
-                }
+            else {
+                stoppers.push(id);
             }
-        });
+        }
     });
-    return function signatureProxyHandler(req, res, next) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const stopID = stop.get(req.hostname);
-            if (stopID) {
-                res.status(503).send(formatStopMessage(stopID));
-                return;
-            }
-            const [digestValue, body] = yield Promise.all([(0, digest_1.digest)(req), restreamer.restream(req)]);
-            const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
-                (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.upstreams.doubleDashDomains)) ||
-                req.hostname;
-            proxy.web(req, res, {
-                changeOrigin: false,
-                target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
-                secure: opts.upstreams.secure,
-                buffer: body,
-                headers: { digest: digestValue },
-                agent: req.protocol === 'http' ? httpagent : httpsagent
-            }, err => next(err));
-        });
+    return async function signatureProxyHandler(req, res, next) {
+        const stopID = stop.get(req.hostname);
+        if (stopID) {
+            res.status(503).send(formatStopMessage(stopID));
+            return;
+        }
+        const [digestValue, body] = await Promise.all([(0, digest_1.digest)(req), restreamer.restream(req)]);
+        const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
+            await (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.upstreams.doubleDashDomains) ||
+            req.hostname;
+        proxy.web(req, res, {
+            changeOrigin: false,
+            target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
+            secure: opts.upstreams.secure,
+            buffer: body,
+            headers: { digest: digestValue },
+            agent: req.protocol === 'http' ? await httpagent : await httpsagent
+        }, err => next(err));
     };
 }
 function newApp(opts) {

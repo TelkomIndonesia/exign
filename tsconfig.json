@@ -1,9 +1,9 @@
 {
     "extends": "@tsconfig/node18/tsconfig.json",
     "compilerOptions": {
-        "target": "es6",
+        "target": "ESNext",
         "module": "commonjs",
-        "moduleResolution": "node",
+        "moduleResolution": "node16",
         "declaration": true,
         "strict": true,
         "noImplicitAny": true /* Raise error on expressions and declarations with an implied 'any' type. */,
