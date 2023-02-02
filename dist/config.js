@@ -110,105 +110,115 @@ function newAppConfig() {
     };
 }
 exports.newAppConfig = newAppConfig;
-async function writeFilesIfNotExist(...files) {
-    try {
-        await Promise.all(files.map(v => (0, promises_1.mkdir)((0, path_1.dirname)(v[0]), { recursive: true })));
-        const handles = await Promise.all(files.map(v => (0, promises_1.open)(v[0], 'wx')));
-        for (let i = 0; i < handles.length; i++) {
-            await handles[i].write(files[i][1]);
-            await handles[i].close();
+function writeFilesIfNotExist(...files) {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        try {
+            yield Promise.all(files.map(v => (0, promises_1.mkdir)((0, path_1.dirname)(v[0]), { recursive: true })));
+            const handles = yield Promise.all(files.map(v => (0, promises_1.open)(v[0], 'wx')));
+            for (let i = 0; i < handles.length; i++) {
+                yield handles[i].write(files[i][1]);
+                yield handles[i].close();
+            }
+            return true;
         }
-        return true;
-    }
-    catch (err) {
-        if (!(typeof err === 'object' && err && 'code' in err && err.code === 'EEXIST')) {
-            throw err;
+        catch (err) {
+            if (!(typeof err === 'object' && err && 'code' in err && err.code === 'EEXIST')) {
+                throw err;
+            }
+            return false;
         }
-        return false;
-    }
+    });
 }
-async function generatePKIs(opts) {
-    opts = opts || config;
-    {
-        const { key, publicKey } = (0, pki_1.newECDSAPair)();
-        const created = await writeFilesIfNotExist([opts.signature.keyfile, key.toString('pkcs8')], [opts.signature.pubkeyfile, publicKey.toString('pkcs8')]);
-        created ? console.log('[INFO] Signature keys created') : console.log('[INFO] Signature keys exists');
-    }
-    {
-        const { key, cert } = (0, pki_1.newX509Pair)('exign.non');
-        const created = await writeFilesIfNotExist([opts.transport.caKeyfile, node_forge_1.pki.privateKeyToPem(key)], [opts.transport.caCertfile, node_forge_1.pki.certificateToPem(cert)]);
-        created ? console.log('[INFO] Transport keys created') : console.log('[INFO] Transport keys exists');
-    }
+function generatePKIs(opts) {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        opts = opts || config;
+        {
+            const { key, publicKey } = (0, pki_1.newECDSAPair)();
+            const created = yield writeFilesIfNotExist([opts.signature.keyfile, key.toString('pkcs8')], [opts.signature.pubkeyfile, publicKey.toString('pkcs8')]);
+            created ? console.log('[INFO] Signature keys created') : console.log('[INFO] Signature keys exists');
+        }
+        {
+            const { key, cert } = (0, pki_1.newX509Pair)('exign.non');
+            const created = yield writeFilesIfNotExist([opts.transport.caKeyfile, node_forge_1.pki.privateKeyToPem(key)], [opts.transport.caCertfile, node_forge_1.pki.certificateToPem(cert)]);
+            created ? console.log('[INFO] Transport keys created') : console.log('[INFO] Transport keys exists');
+        }
+    });
 }
 exports.generatePKIs = generatePKIs;
-async function downloadIfExists(url, location, opts) {
-    await (0, promises_1.mkdir)((0, path_1.dirname)(location), { recursive: true });
-    const request = url.protocol === 'http:' ? http_1.request : https_1.request;
-    const agent = url.protocol === 'https:' && opts?.secure !== true ? new https_1.Agent({ rejectUnauthorized: false }) : undefined;
-    const req = request(url, { agent });
-    if (opts?.signature) {
-        req.setHeader('digest', await (0, digest_1.digest)(stream_1.Readable.from([], { objectMode: false })));
-        (0, signature_1.sign)(req, opts.signature);
-    }
-    const res = await new Promise((resolve, reject) => req.on('response', resolve).on('error', reject).end());
-    if (res.statusCode !== 200 && res.statusCode !== 404) {
-        throw new Error(`unexpected status code: ${res.statusCode}`);
-    }
-    if (res.statusCode === 404) {
-        return false;
-    }
-    await (0, promises_2.pipeline)(res, (0, fs_1.createWriteStream)(location));
-    return true;
+function downloadIfExists(url, location, opts) {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        yield (0, promises_1.mkdir)((0, path_1.dirname)(location), { recursive: true });
+        const request = url.protocol === 'http:' ? http_1.request : https_1.request;
+        const agent = url.protocol === 'https:' && (opts === null || opts === void 0 ? void 0 : opts.secure) !== true ? new https_1.Agent({ rejectUnauthorized: false }) : undefined;
+        const req = request(url, { agent });
+        if (opts === null || opts === void 0 ? void 0 : opts.signature) {
+            req.setHeader('digest', yield (0, digest_1.digest)(stream_1.Readable.from([], { objectMode: false })));
+            (0, signature_1.sign)(req, opts.signature);
+        }
+        const res = yield new Promise((resolve, reject) => req.on('response', resolve).on('error', reject).end());
+        if (res.statusCode !== 200 && res.statusCode !== 404) {
+            throw new Error(`unexpected status code: ${res.statusCode}`);
+        }
+        if (res.statusCode === 404) {
+            return false;
+        }
+        yield (0, promises_2.pipeline)(res, (0, fs_1.createWriteStream)(location));
+        return true;
+    });
 }
-async function downloadRemoteConfigs(opts) {
-    const url = opts?.url || remoteConfig.url;
-    if (!url) {
-        return;
-    }
-    const secure = opts?.secure || remoteConfig.secure === 'true';
-    let signature = opts?.signature;
-    if (!opts) {
-        signature = {
-            key: await (0, promises_1.readFile)(config.signature.keyfile, 'utf-8'),
-            pubkey: await (0, promises_1.readFile)(config.signature.pubkeyfile, 'utf-8')
-        };
-    }
-    const directory = opts?.directory || configDir;
-    const configNames = ['.env', 'hosts', 'upstream-transport/ca.crt'];
-    for (const name of configNames) {
-        while (true) {
-            try {
-                const dowloaded = await downloadIfExists(new URL(name, url), (0, path_1.resolve)(directory, name), { signature, secure });
-                dowloaded && console.log(`[INFO] Remote configs '${name}' downloaded`);
-                break;
-            }
-            catch (err) {
-                if (err instanceof Error) {
-                    console.error(`[WARN] Download '${name}' failed (${err.message}). Make sure your public key has been whitelisted at the remote server. Retrying...`);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+function downloadRemoteConfigs(opts) {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        const url = (opts === null || opts === void 0 ? void 0 : opts.url) || remoteConfig.url;
+        if (!url) {
+            return;
+        }
+        const secure = (opts === null || opts === void 0 ? void 0 : opts.secure) || remoteConfig.secure === 'true';
+        let signature = opts === null || opts === void 0 ? void 0 : opts.signature;
+        if (!opts) {
+            signature = {
+                key: yield (0, promises_1.readFile)(config.signature.keyfile, 'utf-8'),
+                pubkey: yield (0, promises_1.readFile)(config.signature.pubkeyfile, 'utf-8')
+            };
+        }
+        const directory = (opts === null || opts === void 0 ? void 0 : opts.directory) || configDir;
+        const configNames = ['.env', 'hosts', 'upstream-transport/ca.crt'];
+        for (const name of configNames) {
+            while (true) {
+                try {
+                    const dowloaded = yield downloadIfExists(new URL(name, url), (0, path_1.resolve)(directory, name), { signature, secure });
+                    dowloaded && console.log(`[INFO] Remote configs '${name}' downloaded`);
+                    break;
+                }
+                catch (err) {
+                    if (err instanceof Error) {
+                        console.error(`[WARN] Download '${name}' failed (${err.message}). Make sure your public key has been whitelisted at the remote server. Retrying...`);
+                        yield new Promise(resolve => setTimeout(resolve, 1000));
+                    }
                 }
             }
         }
-    }
+    });
 }
 exports.downloadRemoteConfigs = downloadRemoteConfigs;
-async function commitConfig() {
-    const git = (0, simple_git_1.simpleGit)({
-        baseDir: configDir,
-        config: ['user.name=exign', "user.email='<>'"]
-    });
-    try {
-        await git.init();
-        await git.add('.');
-        const diff = await git.diffSummary(['--cached']);
-        if (diff.files.length === 0) {
-            return;
+function commitConfig() {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        const git = (0, simple_git_1.simpleGit)({
+            baseDir: configDir,
+            config: ['user.name=exign', "user.email='<>'"]
+        });
+        try {
+            yield git.init();
+            yield git.add('.');
+            const diff = yield git.diffSummary(['--cached']);
+            if (diff.files.length === 0) {
+                return;
+            }
+            yield git.commit('config updated', ['-a']);
         }
-        await git.commit('config updated', ['-a']);
-    }
-    catch (err) {
-        console.log('[WARN] Cannot commit config:', err);
-    }
+        catch (err) {
+            console.log('[WARN] Cannot commit config:', err);
+        }
+    });
 }
 exports.commitConfig = commitConfig;
 //# sourceMappingURL=config.js.map

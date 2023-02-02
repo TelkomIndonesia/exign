@@ -12,6 +12,7 @@ function loadX509Pair(keyPem, certPem) {
 exports.loadX509Pair = loadX509Pair;
 const certificateCache = new Map();
 function newX509Pair(domain, opts) {
+    var _a, _b;
     let pair = certificateCache.get(domain);
     if (pair) {
         return pair;
@@ -19,7 +20,7 @@ function newX509Pair(domain, opts) {
     const keys = node_forge_1.pki.rsa.generateKeyPair(2048);
     const cert = node_forge_1.pki.createCertificate();
     cert.publicKey = keys.publicKey;
-    cert.serialNumber = (0, crypto_1.randomBytes)(20).toString('hex').match(/.{1,2}/g)?.join(':') || '01';
+    cert.serialNumber = ((_a = (0, crypto_1.randomBytes)(20).toString('hex').match(/.{1,2}/g)) === null || _a === void 0 ? void 0 : _a.join(':')) || '01';
     cert.validity.notBefore = new Date();
     cert.validity.notAfter = new Date();
     cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
@@ -33,7 +34,7 @@ function newX509Pair(domain, opts) {
     ];
     cert.setSubject(attrs);
     cert.setExtensions([
-        { name: 'basicConstraints', cA: !opts?.caKey },
+        { name: 'basicConstraints', cA: !(opts === null || opts === void 0 ? void 0 : opts.caKey) },
         {
             name: 'keyUsage',
             critical: true,
@@ -41,7 +42,7 @@ function newX509Pair(domain, opts) {
             nonRepudiation: true,
             keyEncipherment: true,
             dataEncipherment: true,
-            keyCertSign: !opts?.caKey
+            keyCertSign: !(opts === null || opts === void 0 ? void 0 : opts.caKey)
         },
         {
             name: 'extKeyUsage',
@@ -57,9 +58,9 @@ function newX509Pair(domain, opts) {
             server: true,
             email: true,
             objsign: true,
-            sslCA: !opts?.caKey,
-            emailCA: !opts?.caKey,
-            objCA: !opts?.caKey
+            sslCA: !(opts === null || opts === void 0 ? void 0 : opts.caKey),
+            emailCA: !(opts === null || opts === void 0 ? void 0 : opts.caKey),
+            objCA: !(opts === null || opts === void 0 ? void 0 : opts.caKey)
         },
         {
             name: 'subjectAltName',
@@ -67,8 +68,8 @@ function newX509Pair(domain, opts) {
         },
         { name: 'subjectKeyIdentifier' }
     ]);
-    cert.setIssuer(opts?.caCert?.subject.attributes || attrs);
-    cert.sign(opts?.caKey || keys.privateKey, node_forge_1.md.sha256.create());
+    cert.setIssuer(((_b = opts === null || opts === void 0 ? void 0 : opts.caCert) === null || _b === void 0 ? void 0 : _b.subject.attributes) || attrs);
+    cert.sign((opts === null || opts === void 0 ? void 0 : opts.caKey) || keys.privateKey, node_forge_1.md.sha256.create());
     pair = { key: keys.privateKey, cert };
     certificateCache.set(domain, pair);
     return pair;
