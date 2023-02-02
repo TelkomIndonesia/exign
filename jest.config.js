@@ -2,5 +2,8 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  collectCoverage: true
+  collectCoverage: true,
+  transformIgnorePatterns: [
+    '<rootDir>/node_modules/(?!cacheable-lookup)'
+  ]
 }

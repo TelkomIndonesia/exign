@@ -14,7 +14,7 @@
     "server": "node dist/main.js",
     "preserver-dev": "ts-node --files src/main.ts init",
     "server-dev": "ts-node --files src/main.ts",
-    "test": "jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "author": "I Putu Ariyasa",
   "license": "ISC",
