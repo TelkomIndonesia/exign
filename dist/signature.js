@@ -20,7 +20,7 @@ function publicKeyFingerprint(key) {
     try {
         return (0, sshpk_1.parseKey)(key).fingerprint('sha256').toString();
     }
-    catch {
+    catch (_a) {
         return '';
     }
 }
@@ -57,21 +57,23 @@ function verifyMessage(msg, opts) {
     }
 }
 exports.verifyMessage = verifyMessage;
-async function verify(res, opts) {
-    try {
-        await new Promise((resolve, reject) => res.once('end', resolve).once('error', reject));
-        const msg = { headers: {} };
-        for (const [k, v] of Object.entries(res.headers)) {
-            msg.headers[k] = v;
+function verify(res, opts) {
+    return tslib_1.__awaiter(this, void 0, void 0, function* () {
+        try {
+            yield new Promise((resolve, reject) => res.once('end', resolve).once('error', reject));
+            const msg = { headers: {} };
+            for (const [k, v] of Object.entries(res.headers)) {
+                msg.headers[k] = v;
+            }
+            for (const [k, v] of Object.entries(res.trailers)) {
+                msg.headers[k] = v;
+            }
+            return verifyMessage(msg, { publicKeys: opts.publicKeys });
         }
-        for (const [k, v] of Object.entries(res.trailers)) {
-            msg.headers[k] = v;
+        catch (err) {
+            return { verified: false, error: err };
         }
-        return verifyMessage(msg, { publicKeys: opts.publicKeys });
-    }
-    catch (err) {
-        return { verified: false, error: err };
-    }
+    });
 }
 exports.verify = verify;
 //# sourceMappingURL=signature.js.map

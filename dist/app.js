@@ -40,45 +40,50 @@ function newSignatureProxyHandler(opts) {
         (0, log_1.consoleLog)(proxyReq);
         logDB.log(proxyReq, { url: req.url || '/', httpVersion: req.httpVersion });
     })
-        .on('proxyRes', async function onProxyRes(proxyRes, req, res) {
-        res.addTrailers(proxyRes.trailers);
-        if (!opts.verification) {
-            return;
-        }
-        const { verified } = await (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
-        if (!verified) {
-            const host = req.headers.host || '';
-            const id = res.getHeader(log_1.messageIDHeader)?.toString() || '';
-            console.log('[ERROR] ', formatStopMessage(id));
-            const stoppers = stop.get(host);
-            if (!stoppers) {
-                stop.set(host, [id]);
-                msgIDPostfix = Date.now().toString();
-                setTimeout(() => stop.delete(host), stopPeriodMilis);
+        .on('proxyRes', function onProxyRes(proxyRes, req, res) {
+        var _a;
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            res.addTrailers(proxyRes.trailers);
+            if (!opts.verification) {
+                return;
             }
-            else {
-                stoppers.push(id);
+            const { verified } = yield (0, signature_1.verify)(proxyRes, { publicKeys: opts.verification.keys });
+            if (!verified) {
+                const host = req.headers.host || '';
+                const id = ((_a = res.getHeader(log_1.messageIDHeader)) === null || _a === void 0 ? void 0 : _a.toString()) || '';
+                console.log('[ERROR] ', formatStopMessage(id));
+                const stoppers = stop.get(host);
+                if (!stoppers) {
+                    stop.set(host, [id]);
+                    msgIDPostfix = Date.now().toString();
+                    setTimeout(() => stop.delete(host), stopPeriodMilis);
+                }
+                else {
+                    stoppers.push(id);
+                }
             }
-        }
+        });
     });
-    return async function signatureProxyHandler(req, res, next) {
-        const stopID = stop.get(req.hostname);
-        if (stopID) {
-            res.status(503).send(formatStopMessage(stopID));
-            return;
-        }
-        const [digestValue, body] = await Promise.all([(0, digest_1.digest)(req), restreamer.restream(req)]);
-        const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
-            await (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.upstreams.doubleDashDomains) ||
-            req.hostname;
-        proxy.web(req, res, {
-            changeOrigin: false,
-            target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
-            secure: opts.upstreams.secure,
-            buffer: body,
-            headers: { digest: digestValue },
-            agent: req.protocol === 'http' ? await httpagent : await httpsagent
-        }, err => next(err));
+    return function signatureProxyHandler(req, res, next) {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+            const stopID = stop.get(req.hostname);
+            if (stopID) {
+                res.status(503).send(formatStopMessage(stopID));
+                return;
+            }
+            const [digestValue, body] = yield Promise.all([(0, digest_1.digest)(req), restreamer.restream(req)]);
+            const targetHost = opts.upstreams.hostmap.get(req.hostname) ||
+                (yield (0, double_dash_domain_1.mapDoubleDashHostname)(req.hostname, opts.upstreams.doubleDashDomains)) ||
+                req.hostname;
+            proxy.web(req, res, {
+                changeOrigin: false,
+                target: `${req.protocol}://${targetHost}:${req.protocol === 'http' ? '80' : '443'}`,
+                secure: opts.upstreams.secure,
+                buffer: body,
+                headers: { digest: digestValue },
+                agent: req.protocol === 'http' ? yield httpagent : yield httpsagent
+            }, err => next(err));
+        });
     };
 }
 function newApp(opts) {

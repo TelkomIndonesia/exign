@@ -7,15 +7,15 @@ const promises_1 = require("stream/promises");
 const error_1 = require("./error");
 function newMgmtApp(opts) {
     const app = (0, express_1.default)();
-    app.get('/messages/:id', async (req, res) => {
-        const msg = await opts.logDB.find({ id: req.params.id }, { decodeBody: req.query['decode-body'] === 'true' });
+    app.get('/messages/:id', (req, res) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        const msg = yield opts.logDB.find({ id: req.params.id }, { decodeBody: req.query['decode-body'] === 'true' });
         if (!msg) {
             return res.status(404).send('not found');
         }
         res.setHeader('content-type', 'text/plain');
-        await (0, promises_1.pipeline)(msg, res);
+        yield (0, promises_1.pipeline)(msg, res);
         return res.end();
-    });
+    }));
     app
         .get('/config/signature/key.pem', (_, res) => {
         return res
