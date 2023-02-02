@@ -1,6 +1,6 @@
 {
   "name": "exign",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "egress proxy to insert signature to outgoing HTTP Requests",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,6 +21,7 @@
   "dependencies": {
     "@isaacs/ttlcache": "^1.0.3",
     "@outtacontrol/socks": "^1.0.3",
+    "cacheable-lookup": "^7.0.0",
     "dnsjack": "^1.0.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.1",

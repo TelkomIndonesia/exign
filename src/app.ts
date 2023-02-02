@@ -8,6 +8,12 @@ import { attachID, consoleLog, LogDB, messageIDHeader } from './log'
 import { Agent as HTTPSAgent } from 'https'
 import { errorMW } from './error'
 
+const cacheable = import('cacheable-lookup').then(pkg => pkg.default).then(CacheableLookup => new CacheableLookup())
+function withCacheableLookup<T extends HTTPAgent | HTTPSAgent> (agent: T) {
+  cacheable.then(cacheable => cacheable.install(agent))
+  return agent
+}
+
 interface AppOptions {
   signature: {
     key: string,
@@ -39,8 +45,8 @@ function formatStopMessage (messageID: string | string[] | number) {
 function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
   const restreamer = new Restreamer(opts.digest)
   process.on('exit', () => restreamer.close())
-  const httpagent = new HTTPAgent({ keepAlive: true })
-  const httpsagent = new HTTPSAgent({ keepAlive: true })
+  const httpagent = withCacheableLookup(new HTTPAgent({ keepAlive: true }))
+  const httpsagent = withCacheableLookup(new HTTPSAgent({ keepAlive: true }))
 
   const logDB = opts.logDB
 
@@ -100,7 +106,7 @@ function newSignatureProxyHandler (opts: AppOptions): RequestHandler {
         secure: opts.upstreams.secure,
         buffer: body,
         headers: { digest: digestValue },
-        agent: req.protocol === 'http' ? httpagent : httpsagent
+        agent: req.protocol === 'http' ? await httpagent : await httpsagent
       },
       err => next(err))
   }
